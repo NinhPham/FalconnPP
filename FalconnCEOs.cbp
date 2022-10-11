@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="FalconnCEOs" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/FalconnCEOs" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters='289761 1000 256 20 &quot;/home/npha145/Dataset/kNN/CosineKNN/NYTimes_X_289761_256_t.txt&quot; &quot;/home/npha145/Dataset/kNN/CosineKNN/NYTimes_Q_1000_256_t.txt&quot; &quot;test1D_Thres&quot; 128 100 0 1000 0' />
+				<Compiler>
+					<Add option="-O3" />
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/FalconnCEOs" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters='289761 1000 256 20 &quot;/home/npha145/Dataset/kNN/CosineKNN/NYTimes_X_289761_256_t.txt&quot; &quot;/home/npha145/Dataset/kNN/CosineKNN/NYTimes_Q_1000_256_t.txt&quot; &quot;test1D_Thres&quot; 128 100 0 1000 0' />
+				<Compiler>
+					<Add option="-O3" />
+					<Add option="-std=c++17" />
+					<Add option="-m64" />
+					<Add option="-fopenmp" />
+					<Add option="-march=native" />
+				</Compiler>
+				<Linker>
+					<Add option="-O3" />
+					<Add option="-s" />
+					<Add option="-m64" />
+					<Add option="-lgomp -pthread" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+			<Add directory="C:/Library/eigen-3.4.0" />
+			<Add directory="C:/Library/boost_1_77_0" />
+			<Add directory="/home/npha145/Library/eigen-3.4.0" />
+			<Add directory="/home/npha145/Library/boost_1_78_0" />
+			<Add directory="/shared/Library/eigen-3.4.0" />
+			<Add directory="/shared/Library/boost_1_78_0" />
+		</Compiler>
+		<Linker>
+			<Add directory="/home/npha145/Library/eigen-3.4.0" />
+		</Linker>
+		<Unit filename="BF.cpp" />
+		<Unit filename="BF.h" />
+		<Unit filename="BuildIndex.cpp" />
+		<Unit filename="BuildIndex.h" />
+		<Unit filename="Falconn++.cpp" />
+		<Unit filename="FindKNN.cpp" />
+		<Unit filename="FindKNN.h" />
+		<Unit filename="Header.cpp" />
+		<Unit filename="Header.h" />
+		<Unit filename="InputParser.cpp" />
+		<Unit filename="InputParser.h" />
+		<Unit filename="Test.cpp" />
+		<Unit filename="Test.h" />
+		<Unit filename="Utilities.cpp" />
+		<Unit filename="Utilities.h" />
+		<Unit filename="fast_copy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="fast_copy.h" />
+		<Unit filename="fht.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="fht.h" />
+		<Unit filename="fht_impl.h" />
+		<Unit filename="space_ip.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>
