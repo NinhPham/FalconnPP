@@ -1,0 +1,32 @@
+This is a C++ implementation (with Code::Block IDE) of Falconn++ (https://arxiv.org/abs/2206.01382) which appears in NeurIPS 2022.
+
+Falconn++ uses FFHT (Fast Fast Hadamard Transform) (https://github.com/FALCONN-LIB/FFHT) that provides a heavily optimized C99 implementation of the Fast Hadamard Transform.
+It uses AVX to speed up the computation. This lib is part of FalconnLib
+
+Falconn++ also needs EigenLib-3.4.0 (https://eigen.tuxfamily.org) with vectorization to fast compute inner product 
+and boost-1.78.0 (https://www.boost.org/) to remove duplicates (i.e. points colliding with query in many tables)
+
+See the Compile.sh for compiling.
+
+How to run:
+
+1) To run Falconn++ with a specific setting: #random-vectors, #tables, alpha (in %), #iProbes (index probing), #qProbes (query probing)
+
+#points = 1183514, #queries = 1000, #dim = 200, TopK = 20, dataset_file (matrix of size N x D), query_file (matrix of size Q x D), algorithm, #random vectors, #tables, alpha (in %), iProbes, qProbes, output_filename (will not output any file if setting "NoSave")
+
+./FalconnCEOs 1183514 1000 200 20 "/home/npha145/Dataset/kNN/CosineKNN/Glove_X_1183514_200.txt" "/home/npha145/Dataset/kNN/CosineKNN/Glove_Q_1000_200.txt"  "Falconn++" 256 350 1 4 1000 "output_FalconnCEOs"
+
+--> D = 256 random vectors, hence number of buckets in a table is (2D)^2 since we use 2 combined LSH.
+--> L = 350 tables, alpha = 0.01
+--> iProbes = 4: For one point x in a table, we add it into 4 buckets. Then scale each bucket by #bucketSize * alpha (note that there will be an option that do not scale small buckets)
+--> qProbes = 1000: Among L tables, we probe 1000 buckets. Each table receives an approximate 1000/L probes, dependent on the random projection values of q.
+
+2) To run Falconn++ with different query probing values: #random vectors, #tables, alpha (in %), # iProbes, #qProbes = qProbes-Base + i * qProbes-Range for i = {1, ..., 20}
+
+#points = 1183514, #queries = 1000, #dim = 200, TopK = 20, dataset_file, query_file, algorithm, #random vectors, #tables, alpha (in %), iProbes, qProbes-base, qProbes-range, output_filename (will not output any file if setting "NoSave")
+
+./FalconnCEOs 1183514 1000 200 20 "/home/npha145/Dataset/kNN/CosineKNN/Glove_X_1183514_200.txt" "/home/npha145/Dataset/kNN/CosineKNN/Glove_Q_1000_200.txt"  "test_ScaledIndex_1D" 256 350 1 3 0 1000 "test_ScaledIndex_1D"
+
+--> We build index once, and test the recall & time while varying the number of querying probes (e.g. from 1000 to 20000)
+
+
