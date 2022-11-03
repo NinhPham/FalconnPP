@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters='289761 1000 256 20 &quot;/home/npha145/Dataset/kNN/CosineKNN/NYTimes_X_289761_256_t.txt&quot; &quot;/home/npha145/Dataset/kNN/CosineKNN/NYTimes_Q_1000_256_t.txt&quot; &quot;test1D_Thres&quot; 128 100 0 1000 0' />
+				<Option parameters='1183514 1000 200 20 &quot;/home/npha145/Dataset/kNN/CosineKNN/Glove_X_1183514_200.txt&quot; &quot;/home/npha145/Dataset/kNN/CosineKNN/Glove_Q_1000_200.txt&quot;  &quot;Falconn++&quot; 256 350 1 3 1000 FalconnCEOs' />
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-g" />

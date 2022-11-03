@@ -70,6 +70,14 @@ int loadInput(int nargs, char** args)
 
     }
 
+    /**
+    We center MATRIX_X
+    **/
+    VectorXf vecCenter = MATRIX_X.rowwise().sum(); // sum of all columns
+//    cout << vecCenter.rows() << endl;
+    vecCenter = vecCenter / PARAM_DATA_N;
+    MATRIX_X = MATRIX_X.colwise() - vecCenter; // subtract each column by a vector
+
     // Read the row-wise matrix X, and convert to col-major Eigen matrix
 //    cout << "Read row-wise Q, it will be converted to col-major Eigen matrix of size D x Q..." << endl;
     if (args[6])
@@ -118,271 +126,25 @@ int loadInput(int nargs, char** args)
     // Exact solution
     if (strcmp(args[7], "BF") == 0)
     {
-        iType = 11;
+        iType = 1;
         cout << "Bruteforce topK... " << endl;
+
+        PARAM_OUTPUT_FILE = args[8];
+
+        if (PARAM_OUTPUT_FILE.empty())
+            PARAM_INTERNAL_SAVE_OUTPUT = false;
+        else
+            PARAM_INTERNAL_SAVE_OUTPUT = true;
+
         cout << endl;
     }
 
     // Falconn++
-    else if (strcmp(args[7], "FalconnCEOs2") == 0)
+    else if (strcmp(args[7], "Falconn++") == 0)
     {
-        iType = 21;
+        iType = 2;
 
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Index probes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_LSH_BUCKET_SIZE_SCALE = atof(args[12]);
-        cout << "Bucket size scale: " << PARAM_LSH_BUCKET_SIZE_SCALE << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-        cout << "Candidate size: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-    }
-
-    // Falconn
-    else if (strcmp(args[7], "Falconn") == 0)
-    {
-        iType = 31;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[10]);
-        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[11]);
-        cout << "Candidate size: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = atoi(args[12]);
-//        if (PARAM_LSH_PROBING_HEURISTIC == 1)
-//            cout << "Using CEOs heuristic: probing sequence based on the abs projection value." << endl;
-//        else
-//            cout << "Using Falconn heuristic: probing sequence based on the projection distance." << endl;
-
-//        cout << endl;
-    }
-
-    // Falconn++
-    else if (strcmp(args[7], "FalconnCEOs") == 0)
-    {
-        iType = 32;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Index probes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        float fScale = atof(args[12]);
-        if (fScale > 1.0)
-        {
-            PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = true;
-            PARAM_LSH_BUCKET_SIZE_LIMIT = (int)fScale;
-            cout << "Bucket size limit: " << PARAM_LSH_BUCKET_SIZE_LIMIT << endl;
-        }
-        else if (fScale > 0.0)
-        {
-            PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
-            PARAM_LSH_BUCKET_SIZE_SCALE = fScale;
-            cout << "Bucket size scale: " << PARAM_LSH_BUCKET_SIZE_SCALE << endl;
-        }
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-        cout << "Candidate size: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = atoi(args[14]);
-//        if (PARAM_LSH_PROBING_HEURISTIC == 1)
-//            cout << "Using CEOs heuristic: probing sequence based on the abs projection value." << endl;
-//        else
-//            cout << "Using Falconn heuristic: probing sequence based on the projection distance." << endl;
-
-//        cout << endl;
-    }
-    else if (strcmp(args[7], "cutFalconnCEOs") == 0)
-    {
-        iType = 33;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Index probes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_LSH_DISCARD_T = atof(args[12]);
-        cout << "Discarding threshold: " << PARAM_LSH_DISCARD_T << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-        cout << "Candidate size: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = atoi(args[14]);
-
-    }
-    else if (strcmp(args[7], "FalconnCEOs_Est") == 0)
-    {
-        iType = 34;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Index probes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_LSH_BUCKET_SIZE_SCALE = atof(args[12]);
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-        cout << "Candidate size: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = atoi(args[14]);
-//        if (PARAM_LSH_PROBING_HEURISTIC == 1)
-//            cout << "Using CEOs heuristic: probing sequence based on the abs projection value." << endl;
-//        else
-//            cout << "Using Falconn heuristic: probing sequence based on the projection distance." << endl;
-
-//        cout << endl;
-    }
-    else if (strcmp(args[7], "FalconnCEOsStream") == 0)
-    {
-        iType = 35;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Index probes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_LSH_BUCKET_SIZE_LIMIT = atoi(args[12]);
-        cout << "Bucket size limit: " << PARAM_LSH_BUCKET_SIZE_LIMIT << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-        cout << "Candidate size: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = atoi(args[14]); // only 1 or 0
-//        if (PARAM_LSH_PROBING_HEURISTIC == 1)
-//            cout << "Using CEOs heuristic: probing sequence based on the abs projection value." << endl;
-//        else
-//            cout << "Using Falconn heuristic: probing sequence based on the projection distance." << endl;
-
-        cout << endl;
-    }
-    else if (strcmp(args[7], "FalconnCEOsEst") == 0)
-    {
-        iType = 36;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of hash functions: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Index probes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_LSH_BUCKET_SIZE_LIMIT = atoi(args[12]);
-        cout << "Bucket size limit: " << PARAM_LSH_BUCKET_SIZE_LIMIT << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-        cout << "Candidate size: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        cout << endl;
-    }
-
-    else if (strcmp(args[7], "test_Scale") == 0)
-    {
-        cout << "Fix upD, qProbes, L, iProbes, varying scale..." << endl;
-        iType = 999;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Number of iProbes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Number of qProbes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[12]);
-
-        if (PARAM_MIPS_CANDIDATE_SIZE == 0)
-            PARAM_MIPS_CANDIDATE_SIZE = PARAM_DATA_N;
-
-        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = 1;
-        PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
-
-    }
-    else if (strcmp(args[7], "test1D_Scale") == 0)
-    {
-        cout << "Fix upD, qProbes, L, iProbes, varying scale..." << endl;
-        iType = 998;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Number of iProbes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Number of qProbes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[12]);
-
-        if (PARAM_MIPS_CANDIDATE_SIZE == 0)
-            PARAM_MIPS_CANDIDATE_SIZE = PARAM_DATA_N;
-
-        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = 1;
-        PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
-    }
-    else if (strcmp(args[7], "test1D_Thres") == 0)
-    {
-        cout << "Fix upD, qProbes, L, iProbes, varying scale..." << endl;
-        iType = 997;
+        cout << "Falconn++ topK... " << endl;
 
         PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
         cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
@@ -397,111 +159,47 @@ int loadInput(int nargs, char** args)
         PARAM_LSH_NUM_TABLE = atoi(args[9]);
         cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
 
-        PARAM_TEST_LSH_qPROBE_BASE = atoi(args[10]);
-        cout << "Number of base qProbes: " << PARAM_TEST_LSH_qPROBE_BASE << endl;
+        int iTemp = atoi(args[10]);
+        PARAM_LSH_BUCKET_SIZE_SCALE = iTemp * 1.0 / 100;
+        cout << "Bucket scale: " << PARAM_LSH_BUCKET_SIZE_SCALE << endl;
 
-        PARAM_TEST_LSH_qPROBE_RANGE = atoi(args[11]);
-        cout << "Number of range qProbes: " << PARAM_TEST_LSH_qPROBE_RANGE << endl;
+        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[11]);
+        cout << "Index probes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
 
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[12]);
+        int iProbes = round(PARAM_MIPS_TOP_K * 4.0 * PARAM_LSH_NUM_PROJECTION * PARAM_LSH_NUM_PROJECTION / PARAM_DATA_N);
+        iProbes = max(1, iProbes);
+        cout << "Recommended index probes: " << iProbes << endl;
 
-        if (PARAM_MIPS_CANDIDATE_SIZE == 0)
-            PARAM_MIPS_CANDIDATE_SIZE = PARAM_DATA_N;
+        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[12]);
+        cout << "Query probes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
 
-        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
+//        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
+//
+//        if (PARAM_MIPS_CANDIDATE_SIZE == 0)
+//            PARAM_MIPS_CANDIDATE_SIZE = PARAM_DATA_N;
 
-        PARAM_LSH_PROBING_HEURISTIC = 1;
-        PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
+//        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
+
+        // None: No save file
+        if (strcmp(args[13], "NoOutput") == 0)
+            PARAM_INTERNAL_SAVE_OUTPUT = false;
+        else
+        {
+            PARAM_INTERNAL_SAVE_OUTPUT = true;
+            PARAM_OUTPUT_FILE = args[13];
+        }
+
+        // This parameter is important since it will limit the scaling of small buckets
+        // Default is true
+        // If false, then it use exactly \alpha * n (points) in each table
+        // Setting false to compare with Falconn, and threshold LSF
+        PARAM_INTERNAL_LIMIT_BUCKET = true;
     }
 
-    else if (strcmp(args[7], "test_Scale_qProbe") == 0)
+    else if (strcmp(args[7], "test_ScaledIndex_1D") == 0)
     {
-        cout << "Fix upD, L, iProbes, varying scale and qProbes..." << endl;
-        iType = 996;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Number of iProbes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_TEST_LSH_qPROBE_BASE = atoi(args[11]);
-        cout << "Number of base qProbes: " << PARAM_TEST_LSH_qPROBE_BASE << endl;
-
-        PARAM_TEST_LSH_qPROBE_RANGE = atoi(args[12]);
-        cout << "Number of range qProbes: " << PARAM_TEST_LSH_qPROBE_RANGE << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-
-        if (PARAM_MIPS_CANDIDATE_SIZE == 0)
-            PARAM_MIPS_CANDIDATE_SIZE = PARAM_DATA_N;
-
-        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-
-        PARAM_LSH_PROBING_HEURISTIC = 1;
-        PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
-    }
-    else if (strcmp(args[7], "test_Est_Scale") == 0)
-    {
-        cout << "Fix upD, qProbes, L, iProbes, varying scale and qProbes..." << endl;
-        iType = 995;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Number of iProbes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_LSH_NUM_QUERY_PROBES = atoi(args[11]);
-        cout << "Number of qProbes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[12]);
-        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = 1;
-        PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
-
-    }
-
-    else if (strcmp(args[7], "test_Est_Scale_qProbe") == 0)
-    {
-        cout << "Fix upD, qProbes, L, iProbes, varying scale and qProbes..." << endl;
-        iType = 994;
-
-        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
-        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
-
-        PARAM_LSH_NUM_TABLE = atoi(args[9]);
-        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
-
-        PARAM_LSH_NUM_INDEX_PROBES = atoi(args[10]);
-        cout << "Number of iProbes: " << PARAM_LSH_NUM_INDEX_PROBES << endl;
-
-        PARAM_TEST_LSH_qPROBE_BASE = atoi(args[11]);
-        cout << "Number of base qProbes: " << PARAM_TEST_LSH_qPROBE_BASE << endl;
-
-        PARAM_TEST_LSH_qPROBE_RANGE = atoi(args[12]);
-        cout << "Number of range qProbes: " << PARAM_TEST_LSH_qPROBE_RANGE << endl;
-
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[13]);
-        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
-
-        PARAM_LSH_PROBING_HEURISTIC = 1;
-        PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
-
-    }
-
-    else if (strcmp(args[7], "test_scaledIndex_1D") == 0)
-    {
-        cout << "Fix upD, L, iProbes, scaled, varying qProbes..." << endl;
-        iType = 993;
+        cout << "Fix upD, L, scale, iProbes, varying qProbes..." << endl;
+        iType = 91;
 
         PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
         cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
@@ -529,20 +227,64 @@ int loadInput(int nargs, char** args)
         PARAM_TEST_LSH_qPROBE_RANGE = atoi(args[13]);
         cout << "Number of range qProbes: " << PARAM_TEST_LSH_qPROBE_RANGE << endl;
 
-        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[14]);
+//        PARAM_MIPS_CANDIDATE_SIZE = atoi(args[14]);
+//
+//        if (PARAM_MIPS_CANDIDATE_SIZE == 0)
+//            PARAM_MIPS_CANDIDATE_SIZE = PARAM_DATA_N;
 
-        if (PARAM_MIPS_CANDIDATE_SIZE == 0)
-            PARAM_MIPS_CANDIDATE_SIZE = PARAM_DATA_N;
+//        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
 
-        cout << "Number of inner product computations: " << PARAM_MIPS_CANDIDATE_SIZE << endl;
+        if (strcmp(args[14], "NoOutput") == 0)
+            PARAM_INTERNAL_SAVE_OUTPUT = false;
+        else
+        {
+            PARAM_INTERNAL_SAVE_OUTPUT = true;
+            PARAM_OUTPUT_FILE = args[14];
+        }
 
-        PARAM_LSH_PROBING_HEURISTIC = 1;
-        PARAM_INTERNAL_LSH_FIXING_BUCKET_SIZE = false;
+        // This parameter is important since it will limit the scaling of small buckets
+        // Default is true
+        // If false, then it use exactly \alpha * n (points) in each table
+        // Setting false to compare with Falconn, and threshold LSF
+        PARAM_INTERNAL_LIMIT_BUCKET = true;
+    }
+
+    else if (strcmp(args[7], "test_ThresIndex_1D") == 0)
+    {
+        cout << "Fix upD, qProbes, L, iProbes, varying scale..." << endl;
+        iType = 92;
+
+        PARAM_LSH_NUM_PROJECTION = atoi(args[8]);
+        cout << "Number of projections: " << PARAM_LSH_NUM_PROJECTION << endl;
+
+        if (PARAM_LSH_NUM_PROJECTION < PARAM_DATA_D)
+            PARAM_INTERNAL_FWHT_PROJECTION = 1 << int(ceil(log2(PARAM_DATA_D)));
+        else
+            PARAM_INTERNAL_FWHT_PROJECTION = PARAM_LSH_NUM_PROJECTION;
+
+        cout << "Number of projections for FWHT: " << PARAM_INTERNAL_FWHT_PROJECTION << endl;
+
+        PARAM_LSH_NUM_TABLE = atoi(args[9]);
+        cout << "Number of hash tables: " << PARAM_LSH_NUM_TABLE << endl;
+
+        PARAM_TEST_LSH_qPROBE_BASE = atoi(args[10]);
+        cout << "Number of base qProbes: " << PARAM_TEST_LSH_qPROBE_BASE << endl;
+
+        PARAM_TEST_LSH_qPROBE_RANGE = atoi(args[11]);
+        cout << "Number of range qProbes: " << PARAM_TEST_LSH_qPROBE_RANGE << endl;
+
+        if (strcmp(args[12], "NoOutput")  == 0)
+            PARAM_INTERNAL_SAVE_OUTPUT = false;
+        else
+        {
+            PARAM_INTERNAL_SAVE_OUTPUT = true;
+            PARAM_OUTPUT_FILE = args[12];
+        }
 
     }
 
     // Setting internal parameter
-    PARAM_INTERNAL_LSH_NUM_BUCKET = PARAM_LSH_NUM_PROJECTION * 2;
+    PARAM_INTERNAL_LSH_NUM_BUCKET = 2 * PARAM_LSH_NUM_PROJECTION;
     PARAM_INTERNAL_LOG2_NUM_PROJECTION = log2(PARAM_LSH_NUM_PROJECTION);
     PARAM_INTERNAL_LOG2_FWHT_PROJECTION = log2(PARAM_INTERNAL_FWHT_PROJECTION);
 

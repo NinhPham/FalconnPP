@@ -6,21 +6,23 @@ Build 1D scaled index then run query with different qProbes -- measure speed
 Fix upD, L, scale, iProbes
 Vary qProbes
 **/
-void test2_1D_scaledIndex_qProbes()
+void test_FalconnCEOs2_1D_qProbes()
 {
     chrono::steady_clock::time_point begin, end;
 
     clearFalconnIndex();
 
-    cout << "RAM before index" << endl;
-    getRAM();
+    //cout << "RAM before index" << endl;
+    //getRAM();
+
     // Build 1D index with fixed scale and fixed iProbes
     begin = chrono::steady_clock::now();
     scaledFalconnCEOsIndexing2_iProbes_1D(); // operating index probing
     end = chrono::steady_clock::now();
     cout << "Indexing scaled 1D_Falconn++ Wall Clock = " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
-    cout << "RAM after index" << endl;
-    getRAM();
+
+    //cout << "RAM after index" << endl;
+    //getRAM();
 
     for (int i = 1; i <= 20; ++i)
     {
@@ -29,7 +31,7 @@ void test2_1D_scaledIndex_qProbes()
         cout << "qProbes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
 
         begin = chrono::steady_clock::now();
-        simpleFalconnCEOsTopK_CycProbes2_1D();
+        FalconnCEOs2_1D_TopK();
         end = chrono::steady_clock::now();
         cout << "Search scaled 1D_Falconn++ Wall Clock = " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
     }
@@ -41,7 +43,7 @@ Build index then run query at the same time with different scales -- measure spe
 Fix upD, L, qProbes, iProbes
 Vary scale
 **/
-void test2_1D_thresIndex()
+void test_thresFalconnCEOs2_1D_qProbes()
 {
     chrono::steady_clock::time_point begin, end;
     vector<float> alpha_list = {0.1, 0.5};
@@ -65,7 +67,7 @@ void test2_1D_thresIndex()
             cout << "qProbes: " << PARAM_LSH_NUM_QUERY_PROBES << endl;
 
             begin = chrono::steady_clock::now();
-            thresFalconnCEOsTopK_CycProbes2_1D();
+            FalconnCEOs2_1D_TopK();
             end = chrono::steady_clock::now();
             cout << "Search scaled 1D_Falconn++ Wall Clock = " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
         }

@@ -30,19 +30,11 @@ int main(int nargs, char** args)
 //    cout << "RAM after loading data" << endl;
 //    getRAM();
 
-    PARAM_INTERNAL_SAVE_OUTPUT = true; // saving results
-    PARAM_NUM_ROTATION = 3;
-    PARAM_INTERNAL_LIMIT_BUCKET = true;
-
 	/************************************************************************/
 	/* Approaches                                             */
 	/************************************************************************/
-    struct timeval startTime;
-    gettimeofday(&startTime, NULL);
 
-    //double dStart;
     chrono::steady_clock::time_point begin, end;
-
 
     /************************************************************************/
 	/* Algorithms                                             */
@@ -51,10 +43,9 @@ int main(int nargs, char** args)
 	{
         // Test scaled index & simple queries for 1D and 2D
         // Fix upD, L, scale, iProbes and varying qProbes
-        case 993:
+        case 91:
         {
-            test2_1D_scaledIndex_qProbes(); // build index with 1D array
-//            test2_2D_scaledIndex_qProbes(); // build index with 2D array: faster but need larger space and query time
+            test_FalconnCEOs2_1D_qProbes(); // build index with 1D array
             break;
 
         }
@@ -63,16 +54,13 @@ int main(int nargs, char** args)
         Varying scale while fixing L, iProbes, qProbes, upD
         Test only on 1D thres
         **/
-        case 997:
+        case 92:
         {
-            test2_1D_thresIndex();
+            test_thresFalconnCEOs2_1D_qProbes();
             break;
         }
 
-        /**
-        Bruteforce
-        **/
-        case 11: // Bruteforce topK
+        case 1: // Bruteforce topK
         {
 
             begin = chrono::steady_clock::now();
@@ -81,20 +69,29 @@ int main(int nargs, char** args)
 
     //        getRAM();
             end = chrono::steady_clock::now();
-            cout << "BF Wall Clock = " << chrono::duration_cast<chrono::microseconds>(end - begin).count() << "[us]" << endl;
-            //printf("BF CPU time is %f \n", getCPUTime(clock() - dStart));
-
-//            gettimeofday(&endTime, NULL);
-//
-//            seconds  = endTime.tv_sec  - startTime.tv_sec;  // second
-//            useconds = endTime.tv_usec - startTime.tv_usec; // us = 0.001 ms
-//
-//            mtime = ((seconds) * 1000 + useconds/1000.0) + 0.5; // in milisecond
-//
-//            printf("Ubuntu BF Wall time: %ld milliseconds\n", mtime);
+            cout << "BF Wall Clock = " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << "[ms]" << endl;
 
             break;
         }
+
+        case 2: // Falconn++
+        {
+
+            // Build 1D index with fixed scale and fixed iProbes
+            begin = chrono::steady_clock::now();
+            scaledFalconnCEOsIndexing2_iProbes_1D(); // operating index probing
+            end = chrono::steady_clock::now();
+            cout << "Indexing scaled 1D_Falconn++ Wall Clock = " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+
+    //        getRAM();
+            begin = chrono::steady_clock::now();
+            FalconnCEOs2_1D_TopK();
+            end = chrono::steady_clock::now();
+            cout << "Search scaled 1D_Falconn++ Wall Clock = " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+
+            break;
+        }
+
     }
 }
 
