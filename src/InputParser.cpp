@@ -112,10 +112,10 @@ void readIndexParam(int nargs, char** args, IndexParam& iParam)
     bool bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--numPoints") == 0)
+        if (strcmp(args[i], "--n_points") == 0)
         {
-            iParam.numPoints = atoi(args[i + 1]);
-            cout << "Number of rows/points of X: " << iParam.numPoints << endl;
+            iParam.n_points = atoi(args[i + 1]);
+            cout << "Number of rows/points of X: " << iParam.n_points << endl;
             bSuccess = true;
             break;
         }
@@ -131,10 +131,10 @@ void readIndexParam(int nargs, char** args, IndexParam& iParam)
     bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--numDim") == 0)
+        if (strcmp(args[i], "--n_features") == 0)
         {
-            iParam.numDim = atoi(args[i + 1]);
-            cout << "Number of columns/dimensions: " << iParam.numDim << endl;
+            iParam.n_features = atoi(args[i + 1]);
+            cout << "Number of columns/dimensions: " << iParam.n_features << endl;
             bSuccess = true;
             break;
         }
@@ -151,46 +151,46 @@ void readIndexParam(int nargs, char** args, IndexParam& iParam)
     bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--bucketMinSize") == 0)
+        if (strcmp(args[i], "--bucket_minSize") == 0)
         {
-            iParam.bucketMinSize = atoi(args[i + 1]);
-            cout << "Minimum number of points in a bucket: " << iParam.bucketMinSize << endl;
+            iParam.bucket_minSize = atoi(args[i + 1]);
+            cout << "Minimum number of points in a bucket: " << iParam.bucket_minSize << endl;
             bSuccess = true;
             break;
         }
     }
     if (!bSuccess)
     {
-        iParam.bucketMinSize = 50;
-        cout << "Default minimum number of points in a bucket: " << iParam.bucketMinSize << endl;
+        iParam.bucket_minSize = 50;
+        cout << "Default minimum number of points in a bucket: " << iParam.bucket_minSize << endl;
     }
 
     // n_tables
     bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--numTables") == 0)
+        if (strcmp(args[i], "--n_tables") == 0)
         {
-            iParam.numTables = atoi(args[i + 1]);
-            cout << "Number of LSH tables: " << iParam.numTables << endl;
+            iParam.n_tables = atoi(args[i + 1]);
+            cout << "Number of LSH tables: " << iParam.n_tables << endl;
             bSuccess = true;
             break;
         }
     }
     if (!bSuccess)
     {
-        iParam.numTables = 10;
-        cout << "Default number of LSH tables: " << iParam.numTables << endl;
+        iParam.n_tables = 10;
+        cout << "Default number of LSH tables: " << iParam.n_tables << endl;
     }
 
     // numProjections
     bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--numProj") == 0)
+        if (strcmp(args[i], "--n_proj") == 0)
         {
-            iParam.numProj = atoi(args[i + 1]);
-            cout << "Number of projections: " << iParam.numProj << endl;
+            iParam.n_proj = atoi(args[i + 1]);
+            cout << "Number of projections: " << iParam.n_proj << endl;
             bSuccess = true;
             break;
 
@@ -198,9 +198,9 @@ void readIndexParam(int nargs, char** args, IndexParam& iParam)
     }
     if (!bSuccess)
     {
-        int iTemp = ceil(log2(1.0 * iParam.numDim));
-        iParam.numProj = max(256, 1 << iTemp);
-        cout << "Number of projections: " << iParam.numProj << endl;
+        int iTemp = ceil(log2(1.0 * iParam.n_features));
+        iParam.n_proj = max(256, 1 << iTemp);
+        cout << "Number of projections: " << iParam.n_proj << endl;
     }
 
     // index probing
@@ -225,32 +225,70 @@ void readIndexParam(int nargs, char** args, IndexParam& iParam)
     bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--bucketScale") == 0)
+        if (strcmp(args[i], "--bucket_scale") == 0)
         {
-            iParam.bucketScale = atof(args[i + 1]);
-            cout << "Bucket size scale: " << iParam.bucketScale << endl;
+            iParam.bucket_scale = atof(args[i + 1]);
+            cout << "Bucket size scale: " << iParam.bucket_scale << endl;
             bSuccess = true;
             break;
         }
     }
     if (!bSuccess)
     {
-        iParam.bucketScale = 1.0;
-        cout << "Default bucket scale: " << iParam.bucketScale << endl;
+        iParam.bucket_scale = 1.0;
+        cout << "Default bucket scale: " << iParam.bucket_scale << endl;
     }
 
-    // numThreads
-    iParam.numThreads = -1;
+    // min size of bucket
+    bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--numThreads") == 0)
+        if (strcmp(args[i], "--bucket_minSize") == 0)
         {
-            iParam.numThreads = atoi(args[i + 1]);
-            cout << "Number of index threads: " << iParam.numThreads << endl;
+            iParam.bucket_minSize = atoi(args[i + 1]);
+            cout << "Bucket min size: " << iParam.bucket_minSize << endl;
+            bSuccess = true;
             break;
         }
     }
+    if (!bSuccess)
+    {
+        iParam.bucket_minSize = 50;
+        cout << "Default bucket min size: " << iParam.bucket_minSize << endl;
+    }
 
+    // n_threads
+    iParam.n_threads = -1;
+    for (int i = 1; i < nargs; i++)
+    {
+        if (strcmp(args[i], "--n_threads") == 0)
+        {
+            iParam.n_threads = atoi(args[i + 1]);
+            cout << "Number of threads: " << iParam.n_threads << endl;
+            break;
+        }
+    }
+    if (!bSuccess)
+    {
+        iParam.n_threads = 8;
+        cout << "Default number of threads: " << iParam.n_threads << endl;
+    }
+
+    // n_threads
+    iParam.seed = -1;
+    for (int i = 1; i < nargs; i++)
+    {
+        if (strcmp(args[i], "--random_seed") == 0)
+        {
+            iParam.seed = atoi(args[i + 1]);
+            cout << "Random seed: " << iParam.seed << endl;
+            break;
+        }
+    }
+    if (!bSuccess)
+    {
+        cout << "Use a random seed !" << endl;
+    }
 
     // Top-s0 for for each layers
 //    PARAM_LSH_SIMHASH_LENGTH = 0;
@@ -279,7 +317,7 @@ void readQueryParam(int nargs, char** args, QueryParam & qParam)
     bool bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--numQueries") == 0)
+        if (strcmp(args[i], "--n_queries") == 0)
         {
             qParam.numQueries = atoi(args[i + 1]);
             cout << "Number of rows/points of Q: " << qParam.numQueries << endl;
@@ -302,18 +340,18 @@ void readQueryParam(int nargs, char** args, QueryParam & qParam)
     bSuccess = false;
     for (int i = 1; i < nargs; i++)
     {
-        if (strcmp(args[i], "--topK") == 0)
+        if (strcmp(args[i], "--n_neighbors") == 0)
         {
-            qParam.topK = atoi(args[i + 1]);
-            cout << "Top-K query: " << qParam.topK << endl;
+            qParam.n_neighbors = atoi(args[i + 1]);
+            cout << "Top-K query: " << qParam.n_neighbors << endl;
             bSuccess = true;
             break;
         }
     }
     if (!bSuccess)
     {
-        qParam.topK = 1;
-        cout << "Default top-K: " << qParam.topK << endl;
+        qParam.n_neighbors = 1;
+        cout << "Default top-K: " << qParam.n_neighbors << endl;
     }
 
 

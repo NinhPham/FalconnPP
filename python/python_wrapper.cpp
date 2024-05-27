@@ -18,7 +18,7 @@ PYBIND11_MODULE(FalconnPP, m) { // Must be the same name with class FalconnPP
 //        .def("setQueryParam", &FalconnPP::setQueryParam)
         .def("setIndexParam", &FalconnPP::Index2Layers,
             py::arg("n_tables"), py::arg("n_proj"), py::arg("bucket_minSize"),
-            py::arg("bucket_scale"), py::arg("iProbes"), py::arg("n_threads")
+            py::arg("bucket_scale"), py::arg("iProbes"), py::arg("n_threads") = 8, py::arg("random_seed") = -1
         )
         .def("set_qProbes", &FalconnPP::set_qProbes, py::arg("qProbes"))
         .def("set_threads", &FalconnPP::set_threads, py::arg("n_threads"))

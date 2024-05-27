@@ -25,16 +25,16 @@ typedef vector<int> IVector;
 
 //typedef boost::multi_array<int, 3> IVector3D;
 
-struct myComp {
-
-    constexpr bool operator()(
-        pair<double, int> const& a,
-        pair<double, int> const& b)
-        const noexcept
-    {
-        return a.first > b.first;
-    }
-};
+//struct myComp {
+//
+//    constexpr bool operator()(
+//        pair<double, int> const& a,
+//        pair<double, int> const& b)
+//        const noexcept
+//    {
+//        return a.first > b.first;
+//    }
+//};
 
 struct IFPair
 {
@@ -67,20 +67,21 @@ struct IFPair
 
 struct IndexParam
 {
-    int numPoints;
-    int numDim;
-    int bucketMinSize;
-    float bucketScale;
-    int numTables;
-    int numProj;
+    int n_points;
+    int n_features;
+    int bucket_minSize;
+    float bucket_scale;
+    int n_tables;
+    int n_proj;
     int iProbes;
-    int numThreads;
+    int n_threads;
+    int seed;
 };
 
 struct QueryParam{
 
     int numQueries;
-    int topK;
+    int n_neighbors;
     int qProbes;
     bool verbose;
 };

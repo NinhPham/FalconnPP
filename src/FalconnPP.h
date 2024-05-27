@@ -17,12 +17,15 @@ protected:
     int n_tables = 10;
     int n_proj = 512;
     int n_rotate = 3;
-    int n_threads = -1;
+    int n_threads = 8;
+
     int bucket_minSize = 50;
     float bucket_scale = 1.0;
-    int iProbes = 1;
 
+    int iProbes = 1;
     int qProbes = 1;
+
+    int seed = -1;
 
     MatrixXf matrix_X; // d x n
 
@@ -48,7 +51,10 @@ protected:
      */
     void bitHD3Generator2(int p_iNumBit)
     {
-        unsigned seed = chrono::system_clock::now().time_since_epoch().count(); // or 40 to fix random seed
+        unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+        if (FalconnPP::seed > -1) // then use the assigned seed
+            seed = FalconnPP::seed;
+
         default_random_engine generator(seed);
         uniform_int_distribution<uint32_t> unifDist(0, 1);
 
@@ -76,13 +82,14 @@ public:
         n_features = d;
     }
 
-    void Index2Layers(int L, int D, int bucketLimit, float alpha, int p, int t) {
+    void Index2Layers(int L, int D, int bucketLimit, float alpha, int p, int t, int s) {
         n_tables = L;
         n_proj = D;
         bucket_minSize = bucketLimit;
         bucket_scale = alpha;
         iProbes = p;
         n_threads = t;
+        seed = s;
 
         // setting fht dimension. Note n_proj must be 2^a, and > n_features
         // Ensure fhtDim > n_proj
@@ -112,10 +119,10 @@ public:
     }
 
     void build2Layers_1D(const Ref<const MatrixXf> &); // Used in NeurIPS 2022 for static data
-    MatrixXi query2Layers_1D(const Ref<const MatrixXf> &, const int &, bool=false); // Used in NeurIPS 2022 for static data
+    MatrixXi query2Layers_1D(const Ref<const MatrixXf> &, int , bool=false); // Used in NeurIPS 2022 for static data
 
     void build2Layers(const Ref<const MatrixXf> &);
-    MatrixXi query2Layers(const Ref<const MatrixXf> &, const int &, bool=false);
+    MatrixXi query2Layers(const Ref<const MatrixXf> &, int , bool=false);
 
     ~FalconnPP() { clear(); }
 };

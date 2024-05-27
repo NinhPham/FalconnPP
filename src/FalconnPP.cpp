@@ -24,7 +24,7 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
     cout << "n_features: " << FalconnPP::n_features << endl;
     cout << "n_tables: " << FalconnPP::n_tables << endl;
     cout << "n_proj: " << FalconnPP::n_proj << endl;
-    cout << "# fht: " << FalconnPP::fhtDim << endl;
+    cout << "fhtDim: " << FalconnPP::fhtDim << endl;
     cout << "# iProbes: " << FalconnPP::iProbes << endl;
     cout << "bucket_minSize: " << FalconnPP::bucket_minSize << endl;
     cout << "bucket_scale: " << FalconnPP::bucket_scale << endl;
@@ -98,6 +98,7 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
 
              /**
              We use a priority queue to keep top-max abs projection for each repeat
+             Always ensure fhtDim >= n_proj
              **/
              for (int r = 0; r < FalconnPP::n_proj; ++r)
              {
@@ -291,8 +292,8 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
 
      cout << "Size of vecPair_BucketPos in GB: " << dSize_Pos << endl;
 
-     cout << "Size of 2LayerIndex_1D index in GB: " << dSize_1D + dSize_Pos << endl;
-     cout << "numPoints per table / n: " << dScaleData << endl;
+     cout << "Size of Falconn++ (2 layers) index in GB: " << dSize_1D + dSize_Pos << endl;
+     cout << "n_points per table / n: " << dScaleData << endl;
      cout << "Percentage of scaled buckets in a table: " << 1.0 * iNumLimitedBucket / (numBucketsPerTable * FalconnPP::n_tables) << endl;
 
      auto end = chrono::high_resolution_clock::now();
@@ -306,15 +307,15 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
 * Query on 2 layers LSH
 * Adaptively select better buckets among 2D*2D buckets to have better candidate, given the same candSize
 */
-MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, const int & n_neighbors, bool verbose){
+MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neighbors, bool verbose){
 
     int n_queries = matQ.cols();
 
     if (verbose)
     {
-        cout << "n_queries: " << n_queries << endl;
+        cout << "number of queries: " << n_queries << endl;
         cout << "# qProbes: " << FalconnPP::qProbes << endl;
-        cout << "n_threads: " << FalconnPP::n_threads << endl;
+        cout << "number of threads: " << FalconnPP::n_threads << endl;
     }
 
      auto startQueryTime = chrono::high_resolution_clock::now();
@@ -724,7 +725,7 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
     cout << "n_features: " << FalconnPP::n_features << endl;
     cout << "n_tables: " << FalconnPP::n_tables << endl;
     cout << "n_proj: " << FalconnPP::n_proj << endl;
-    cout << "# fht: " << FalconnPP::fhtDim << endl;
+    cout << "fhtDim: " << FalconnPP::fhtDim << endl;
     cout << "# iProbes: " << FalconnPP::iProbes << endl;
     cout << "bucket_minSize: " << FalconnPP::bucket_minSize << endl;
     cout << "bucket_scale: " << FalconnPP::bucket_scale << endl;
@@ -993,7 +994,7 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
     dIndexSize = 1.0 * sizeof(float) * FalconnPP::matrix_X.rows() * FalconnPP::matrix_X.cols() / (1 << 30); // capacity() ?
     cout << "Size of data in GB: " << dIndexSize << endl;
 
-    cout << "numPoints per table / n: " << dScaleData << endl;
+    cout << "n_points per table / n: " << dScaleData << endl;
     cout << "Percentage of scaled buckets in a table: " << 1.0 * iNumLimitedBucket / (numBucketsPerTable * FalconnPP::n_tables) << endl;
 
     auto end = chrono::high_resolution_clock::now();
@@ -1009,15 +1010,15 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
  *
  * @ matQ: col-wise matrix query of size D x Q
  */
-MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, const int & n_neighbors, bool verbose)
+MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, int n_neighbors, bool verbose)
 {
     int n_queries = matQ.cols();
 
     if (verbose)
     {
-        cout << "n_queries: " << n_queries << endl;
+        cout << "number of queries: " << n_queries << endl;
         cout << "# qProbes: " << FalconnPP::qProbes << endl;
-        cout << "n_threads: " << FalconnPP::n_threads << endl;
+        cout << "number of threads: " << FalconnPP::n_threads << endl;
     }
 
 //    cout << matQ.col(0).transpose() << endl;

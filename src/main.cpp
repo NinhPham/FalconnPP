@@ -9,7 +9,7 @@
 
 // --numData 1183514 --n_features 200 --n_tables 10 --n_proj 256 --bucket_minSize 20, --bucket_scale 0.01
 // --X "/home/npha145/Dataset/kNN/CosineKNN/Glove_X_1183514_200.txt" --n_threads 4
-// --Q "/home/npha145/Dataset/kNN/CosineKNN/Glove_Q_1000_200.txt" --n_queries 1000  --qProbes 10 --n_neighbors 20 --qThreads 4
+// --Q "/home/npha145/Dataset/kNN/CosineKNN/Glove_Q_1000_200.txt" --n_queries 1000  --qProbes 10 --n_neighbors 20 --n_threads 4
 
 int main(int nargs, char** args) {
 
@@ -21,50 +21,48 @@ int main(int nargs, char** args) {
 
     // Read data
     MatrixXf MATRIX_X, MATRIX_Q;
-    loadtxtDatabase(nargs, args, iParam.numPoints, iParam.numDim, MATRIX_X);
-    loadtxtQuery(nargs, args, qParam.numQueries, iParam.numDim, MATRIX_Q);
+    loadtxtDatabase(nargs, args, iParam.n_points, iParam.n_features, MATRIX_X);
+    loadtxtQuery(nargs, args, qParam.numQueries, iParam.n_features, MATRIX_Q);
 
 
-    // BF
-    // cout << "BF..." << endl;
-    // BF bf;
-    // bf.init(iParam.n_points, iParam.n_features, qParam.n_queries, qParam.n_neighbors, qParam.qThreads, MATRIX_X, MATRIX_Q);
-    //
-    // // Note: we should resize MatrixX and Q for saving memory
-    // MATRIX_X.resize(0, 0);
-    // MATRIX_Q.resize(0, 0);
-    //
-    // // Exact search
-    // bf.mips_topK();
-    // cout << "BF Finish..." << endl;
-    // bf.clear();
+//     BF bf;
+//     bf.init(iParam.n_points, iParam.n_features, iParam.n_threads, MATRIX_X);
+//
+//     // Note: we should resize MatrixX and Q for saving memory
+//     MATRIX_X.resize(0, 0);
+//     MATRIX_Q.resize(0, 0);
+//
+//     // Exact search
+//     bf.mips_topK(MATRIX_Q, qParam.n_neighbors);
+//     cout << "BF Finish..." << endl;
+//     bf.clear();
 
 
     // 2D FalconnPP
-    FalconnPP falconn(iParam.numPoints, iParam.numDim);
-    falconn.Index2Layers(iParam.numTables, iParam.numProj, iParam.bucketMinSize, \
-iParam.bucketScale, iParam.iProbes, iParam.numThreads);
-
-     // 2D index
-//    falconn.build2Layers(MATRIX_X);
-    //    MATRIX_X.resize(0, 0); // Note: we should resize MatrixX for saving memory
-//    falconn.setQueryParam(qParam.n_queries, qParam.n_neighbors, qParam.qProbes, qParam.qThreads, qParam.verbose);
-//
-//    for (int i = 1; i <= 10; ++i)
-//    {
-//        falconn.set_qProbes(1000 * i);
-//        falconn.query2Layers(MATRIX_Q, qParam.topK, qParam.verbose);
-//    }
+    FalconnPP falconn(iParam.n_points, iParam.n_features);
+    falconn.Index2Layers(iParam.n_tables, iParam.n_proj, iParam.bucket_minSize, \
+    iParam.bucket_scale, iParam.iProbes, iParam.n_threads, iParam.seed);
 
     // 1D index - NeurIPS 2022
 //    falconn.clear();
     falconn.build2Layers_1D(MATRIX_X);
-    MATRIX_X.resize(0, 0);
+    MATRIX_X.resize(0, 0); // if not use MATRIX_X later,  need to resize to save memory
     for (int i = 1; i <= 10; ++i)
     {
         falconn.set_qProbes(1000 * i);
-        falconn.query2Layers_1D(MATRIX_Q, qParam.topK, qParam.verbose);
+        falconn.query2Layers_1D(MATRIX_Q, qParam.n_neighbors, qParam.verbose);
     }
+
+    // 2D index
+//    falconn.build2Layers(MATRIX_X);
+    //    MATRIX_X.resize(0, 0); // Note: we should resize MatrixX for saving memory
+//    falconn.setQueryParam(qParam.n_queries, qParam.n_neighbors, qParam.qProbes, qParam.n_threads, qParam.verbose);
+//
+//    for (int i = 1; i <= 10; ++i)
+//    {
+//        falconn.set_qProbes(1000 * i);
+//        falconn.query2Layers(MATRIX_Q, qParam.n_neighbors, qParam.verbose);
+//    }
 
     return 0;
 

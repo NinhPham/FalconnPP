@@ -1,4 +1,4 @@
-# Install script for directory: /home/npha145/Dropbox (Uni of Auckland)/Working/_Code/C++/FalconnCEOs
+# Install script for directory: /home/npha145/Dropbox (Uni of Auckland)/Working/_Code/C++/FalconnPP
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/npha145/Dropbox (Uni of Auckland)/Working/_Code/C++/FalconnCEOs/cmake-build-release/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/npha145/Dropbox (Uni of Auckland)/Working/_Code/C++/FalconnPP/cmake-build-release/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

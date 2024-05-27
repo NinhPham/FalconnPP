@@ -35,6 +35,7 @@ inline int sgn(float x)
  */
 void outputFile(const Ref<const MatrixXi> & , const string& );
 
+
 // Fast Hadamard transform
 /**
     Convert a = a + b, b = a - b

@@ -13,7 +13,7 @@ def callFalconn(dataset, queries, k):
     numThreads = 64
 
     # Falconn param
-    number_of_tables = 50
+    number_of_tables = 350
     number_of_bits = 18
     centering = 0
 
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     # --------------------------------------------------------------------------------
     # Loading data set
-    dataset_file = '/home/npha145/Dataset/ANNS/CosineKNN/Glove_X_1183514_200.npy'
+    dataset_file = '/home/npha145/Dataset/ANNS/CosineKNN/Glove_center_X_1183514_200.npy'
     query_file = '/home/npha145/Dataset/ANNS/CosineKNN/Glove_Q_1000_200.npy'
 
     dataset = np.load(dataset_file)
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     import faiss
     faiss.omp_set_num_threads(numThreads)
     t1 = timeit.default_timer()
-    index = faiss.IndexFlatL2(numDim)  # build the index
+    index = faiss.IndexFlatIP(numDim)  # build the index
     print(index.is_trained)
     index.add(dataset)  # add vectors to the index
     t2 = timeit.default_timer()
@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     # --------------------------------------------------------------------------------
     # Falconn
-    # callFalconn(dataset, queries, k)
+    callFalconn(dataset, queries, k)
 
     # --------------------------------------------------------------------------------
 
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     bucketLimit = 50
     alpha = 0.01
     iProbes = 3
-
+	
     # Indexing
     t1 = timeit.default_timer()
     import FalconnPP

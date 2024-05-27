@@ -2,8 +2,8 @@
 // Created by npha145 on 17/03/24.
 //
 
-#ifndef FALCONNCEOS_BF_H
-#define FALCONNCEOS_BF_H
+#ifndef BF_H
+#define BF_H
 
 #include "Header.h"
 
@@ -11,38 +11,29 @@ class BF {
 
     protected:
 
-    int numPoints;
-    int numDim;
-
-    int numQueries;
-    int topK = 1;
-
-    int qThreads = -1;
-
-    MatrixXf matrix_Q;
+    int n_points;
+    int n_features;
+    int n_threads = 8;
     MatrixXf matrix_X;
 
     // function to initialize private variables
 public:
 
-    void init(int N, int d, int Q, int k, int t, const MatrixXf& matX, const MatrixXf& matQ) {
-        numPoints = N;
-        numDim = d;
+    void init(int N, int d, int t, const Ref<const MatrixXf> & matX) {
+        n_points = N;
+        n_features = d;
         matrix_X = matX;
-
-        matrix_Q = matQ;
-        numQueries = Q;
-        topK = k;
-        qThreads = t;
+        n_threads = t;
     };
 
-    MatrixXi mips_topK();
+    MatrixXi mips_topK(const Ref<const MatrixXf> &, int);
 
     void clear() {
-        matrix_Q.resize(0, 0);
         matrix_X.resize(0, 0);
     };
+
+    ~BF() { clear(); }
 };
 
 
-#endif //FALCONNCEOS_BF_H
+#endif //BF_H
