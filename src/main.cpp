@@ -3,7 +3,6 @@
 
 #include "Header.h"
 #include "Utilities.h"
-#include "InputParser.h"
 #include "FalconnPP.h"
 #include "BF.h"
 
@@ -21,9 +20,36 @@ int main(int nargs, char** args) {
 
     // Read data
     MatrixXf MATRIX_X, MATRIX_Q;
-    loadtxtDatabase(nargs, args, iParam.n_points, iParam.n_features, MATRIX_X);
-    loadtxtQuery(nargs, args, qParam.numQueries, iParam.n_features, MATRIX_Q);
 
+    // Read dataset
+    string dataset = "";
+    for (int i = 1; i < nargs; i++) {
+        if (strcmp(args[i], "--X") == 0) {
+            dataset = args[i + 1]; // convert char* to string
+            break;
+        }
+    }
+    if (dataset == "") {
+        cerr << "Error: Data file does not exist !" << endl;
+        exit(1);
+    }
+    else
+        loadtxtData(dataset, iParam.n_points, iParam.n_features, MATRIX_X);
+
+    // Read query set
+    dataset = "";
+    for (int i = 1; i < nargs; i++) {
+        if (strcmp(args[i], "--Q") == 0) {
+            dataset = args[i + 1]; // convert char* to string
+            break;
+        }
+    }
+    if (dataset == "") {
+        cerr << "Error: Query file does not exist !" << endl;
+        exit(1);
+    }
+    else
+        loadtxtData(dataset, qParam.n_queries, iParam.n_features, MATRIX_Q);
 
 //     BF bf;
 //     bf.init(iParam.n_points, iParam.n_features, iParam.n_threads, MATRIX_X);

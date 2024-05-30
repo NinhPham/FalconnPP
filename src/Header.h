@@ -80,7 +80,7 @@ struct IndexParam
 
 struct QueryParam{
 
-    int numQueries;
+    int n_queries;
     int n_neighbors;
     int qProbes;
     bool verbose;

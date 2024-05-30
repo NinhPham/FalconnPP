@@ -15,18 +15,16 @@ endif()
 add_executable(FalconnPP src/main.cpp
         src/BF.cpp
 #        src/BF.h
-        src/Header.h
-        src/InputParser.cpp
-#        src/InputParser.h
+#        src/Header.h
         src/Utilities.cpp
         src/FalconnPP.cpp
 #        src/FalconnPP.h
         src/fast_copy.c
 #        src/fast_copy.h
         src/fht.c
-        src/fht.h
+#        src/fht.h
 #        src/fht_avx.c
-        src/fht_impl.h
+#        src/fht_impl.h
 #        src/fht_sse.c
 )
 

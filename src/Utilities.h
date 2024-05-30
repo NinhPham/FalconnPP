@@ -33,8 +33,12 @@ inline int sgn(float x)
 /**
  * Save output
  */
-void outputFile(const Ref<const MatrixXi> & , const string& );
+void outputFile(const Ref<const MatrixXi> & , const string & );
 
+
+void readIndexParam(int, char**, IndexParam & );
+void readQueryParam(int, char** , QueryParam &);
+void loadtxtData(const string &, int , int, MatrixXf & );
 
 // Fast Hadamard transform
 /**

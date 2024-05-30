@@ -17,7 +17,7 @@ protected:
     int n_tables = 10;
     int n_proj = 512;
     int n_rotate = 3;
-    int n_threads = 8;
+    int n_threads = -1;
 
     int bucket_minSize = 50;
     float bucket_scale = 1.0;
@@ -88,7 +88,7 @@ public:
         bucket_minSize = bucketLimit;
         bucket_scale = alpha;
         iProbes = p;
-        n_threads = t;
+        set_threads(t);
         seed = s;
 
         // setting fht dimension. Note n_proj must be 2^a, and > n_features
@@ -114,8 +114,12 @@ public:
         qProbes = p;
     }
 
-    void set_threads(int t){
-        n_threads = t;
+    void set_threads(int t)
+    {
+        if (t <= 0)
+            n_threads = omp_get_max_threads();
+        else
+            n_threads = t;
     }
 
     void build2Layers_1D(const Ref<const MatrixXf> &); // Used in NeurIPS 2022 for static data

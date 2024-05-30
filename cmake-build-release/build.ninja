@@ -63,13 +63,6 @@ build CMakeFiles/FalconnPP.dir/src/BF.cpp.o: CXX_COMPILER__FalconnPP_unscanned_R
   OBJECT_DIR = CMakeFiles/FalconnPP.dir
   OBJECT_FILE_DIR = CMakeFiles/FalconnPP.dir/src
 
-build CMakeFiles/FalconnPP.dir/src/InputParser.cpp.o: CXX_COMPILER__FalconnPP_unscanned_Release /home/npha145/Dropbox$ (Uni$ of$ Auckland)/Working/_Code/C++/FalconnPP/src/InputParser.cpp || cmake_object_order_depends_target_FalconnPP
-  DEP_FILE = CMakeFiles/FalconnPP.dir/src/InputParser.cpp.o.d
-  FLAGS = -fopenmp -O3 -march=native -O3 -DNDEBUG -std=gnu++17 -fdiagnostics-color=always
-  INCLUDES = -isystem /home/npha145/.vcpkg-clion/vcpkg/installed/x64-linux/include/eigen3
-  OBJECT_DIR = CMakeFiles/FalconnPP.dir
-  OBJECT_FILE_DIR = CMakeFiles/FalconnPP.dir/src
-
 build CMakeFiles/FalconnPP.dir/src/Utilities.cpp.o: CXX_COMPILER__FalconnPP_unscanned_Release /home/npha145/Dropbox$ (Uni$ of$ Auckland)/Working/_Code/C++/FalconnPP/src/Utilities.cpp || cmake_object_order_depends_target_FalconnPP
   DEP_FILE = CMakeFiles/FalconnPP.dir/src/Utilities.cpp.o.d
   FLAGS = -fopenmp -O3 -march=native -O3 -DNDEBUG -std=gnu++17 -fdiagnostics-color=always
@@ -106,7 +99,7 @@ build CMakeFiles/FalconnPP.dir/src/fht.c.o: C_COMPILER__FalconnPP_unscanned_Rele
 #############################################
 # Link the executable FalconnPP
 
-build FalconnPP: CXX_EXECUTABLE_LINKER__FalconnPP_Release CMakeFiles/FalconnPP.dir/src/main.cpp.o CMakeFiles/FalconnPP.dir/src/BF.cpp.o CMakeFiles/FalconnPP.dir/src/InputParser.cpp.o CMakeFiles/FalconnPP.dir/src/Utilities.cpp.o CMakeFiles/FalconnPP.dir/src/FalconnPP.cpp.o CMakeFiles/FalconnPP.dir/src/fast_copy.c.o CMakeFiles/FalconnPP.dir/src/fht.c.o
+build FalconnPP: CXX_EXECUTABLE_LINKER__FalconnPP_Release CMakeFiles/FalconnPP.dir/src/main.cpp.o CMakeFiles/FalconnPP.dir/src/BF.cpp.o CMakeFiles/FalconnPP.dir/src/Utilities.cpp.o CMakeFiles/FalconnPP.dir/src/FalconnPP.cpp.o CMakeFiles/FalconnPP.dir/src/fast_copy.c.o CMakeFiles/FalconnPP.dir/src/fht.c.o
   FLAGS = -fopenmp -O3 -march=native -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/FalconnPP.dir
   POST_BUILD = :

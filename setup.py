@@ -30,7 +30,7 @@ if sys.platform == 'darwin':
 ext_modules = [
     Pybind11Extension(
         "FalconnPP",
-        ["python/python_wrapper.cpp", "src/main.cpp", "src/InputParser.cpp",
+        ["python/python_wrapper.cpp", "src/main.cpp",
          "src/FalconnPP.cpp", "src/Utilities.cpp",
          "src/fht.c", "src/fast_copy.c", "src/BF.cpp"],
         # Example: passing in the version to the compiled code
