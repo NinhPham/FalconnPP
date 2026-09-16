@@ -14,19 +14,21 @@ class bf {
     int n_points;
     int n_features;
     int n_threads = 8;
-    MatrixXf matrix_X;
+    RowMatrixXf matrix_X;
 
     // function to initialize private variables
 public:
 
-    void init(int N, int d, int t, const Ref<const MatrixXf> & matX) {
+    void init(int N, int d, int t, const Ref<const RowMatrixXf> & matX) {
+        if (matX.rows() != N || matX.cols() != d)
+            throw invalid_argument("dataset must have shape (n_points, n_features)");
         n_points = N;
         n_features = d;
         matrix_X = matX;
         n_threads = t;
     };
 
-    MatrixXi mips_topK(const Ref<const MatrixXf> &, int);
+    MatrixXi mips_topK(const Ref<const RowMatrixXf> &, int);
 
     void clear() {
         matrix_X.resize(0, 0);

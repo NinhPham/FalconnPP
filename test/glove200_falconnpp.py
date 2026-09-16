@@ -14,14 +14,16 @@ import falconnpp
 if __name__ == '__main__':
 
 
-    k = 20
+    k = 100
     numThreads = 8
 
     # --------------------------------------------------------------------------------
     # Loading data set
     path = Path("~/Work/Datasets/ANNS/").expanduser()
-    dataset_file = path / "Glove_X_1183514_200.bin"
-    query_file = path / "Glove_Q_1000_200.bin"
+    savePath = path / "glove200_output"
+
+    dataset_file = path / "glove_X_norm_1183514_200.bin"
+    query_file = path / "glove_Q_norm_1000_200.bin"
 
     nx = 1183514
     nq = 1000
@@ -39,18 +41,95 @@ if __name__ == '__main__':
     # utils.inspect_data(X)
     # utils.inspect_data(Q)
     # exit()
+
     # --------------------------------------------------------------------------------
     """ Faiss BF """
-    faiss.omp_set_num_threads(numThreads)
-    t1 = timeit.default_timer()
-    bf_faiss = faiss.IndexFlatIP(d)  # build the index
-    print(bf_faiss.is_trained)
-    bf_faiss.add(X)  # add vectors to the index
-    print('Faiss BF construction time: {: .4f} in seconds'.format(timeit.default_timer() - t1))
+    # faiss.omp_set_num_threads(numThreads)
+    # t1 = timeit.default_timer()
+    # bf_faiss = faiss.IndexFlatIP(d)  # build the index
+    # print(bf_faiss.is_trained)
+    # bf_faiss.add(X)  # add vectors to the index
+    # print('Faiss BF construction time: {: .4f} in seconds'.format(timeit.default_timer() - t1))
+    #
+    # t1 = timeit.default_timer()
+    # bf_dist, bf_ind = bf_faiss.search(Q, k)  # actual search
+    # print('Faiss BF querying time: {: .4f} in seconds\n'.format(timeit.default_timer() - t1))
+    # np.save(savePath / "glove200_cosine_indices_k_100.npy", bf_ind)
+    # exit()
 
+    bf_ind = np.load(savePath / "glove200_cosine_indices_k_100.npy")
+
+    """ Falconn++ """
+
+    # center = np.mean(dataset, axis=0) # no need centering as we will do it internally
+
+    # index param
+    numTables = 200
+    numProj = 256
+    bucketLimit = 50
+    alpha = 0.01
+    iProbes = 3
+    numThreads = 8
+
+    # Indexing
     t1 = timeit.default_timer()
-    bf_dist, bf_ind = bf_faiss.search(Q, k)  # actual search
-    print('Faiss BF querying time: {: .4f} in seconds\n'.format(timeit.default_timer() - t1))
+    index = falconnpp.FalconnPP(nx, d)
+    index.setIndexParam(numTables, numProj, bucketLimit, alpha, iProbes, numThreads)
+    index.build(X)
+    t2 = timeit.default_timer()
+    print('Falconn++ 1D indexing time: {: .4f} in second'.format(t2 - t1))
+
+    # might clear X for space
+    
+    # Querying 1D
+    probeRepeats = 5
+    for i in range(probeRepeats):
+
+        t1 = timeit.default_timer()
+        qProbes = 1000 * (i + 1)
+        index.set_qProbes(qProbes)
+
+        fal_ind = index.query(Q, k)
+        t2 = timeit.default_timer()
+        print('Falconn++ querying time: {: .4f} in seconds'.format(t2 - t1))
+
+        fal_score = 0.0
+        for q in range(nq):
+            temp = len(set(bf_ind[q, :k]).intersection(set(fal_ind[q, :])))
+            fal_score += float(temp) / k
+
+        print('Falconn++ recall: {: .4f}'.format(float(fal_score) / nq))
+
+    # --------------------------------------------------------------------------------
+
+    # Indexing 2D
+    # t1 = timeit.default_timer()
+    # index.clear()
+    # index.setIndexParam(numTables, numProj, bucketLimit, alpha, iProbes, numThreads)
+    # index.build2D(X)
+    # t2 = timeit.default_timer()
+    # print('Falconn++ indexing 2D time: {}'.format(t2 - t1))
+
+    # Querying 2D
+    # index.set_threads(64)
+    # for i in range(numRepeat):
+    #
+    #     t1 = timeit.default_timer()
+    #     qProbes = 1000 * (i + 1)
+    #     index.set_qProbes(qProbes)
+    #
+    #     fal_answers = index.query2D(Q, k)
+    #     t2 = timeit.default_timer()
+    #     print('Falconn++ querying time: {}'.format(t2 - t1))
+    #
+    #     score = 0.0
+    #     for q in range(numQueries):
+    #         temp = len(set(answers_bf[q, :k]).intersection(set(fal_answers[q, :])))
+    #         score += float(temp) / k
+    #
+    #     print('Recall: {}'.format(float(score) / numQueries))
+
+    # --------------------------------------------------------------------------------
 
     """ Faiss IVF """
     # nlist = 1000
@@ -143,82 +222,3 @@ if __name__ == '__main__':
     #         hnsw_score += float(temp) / k
     #
     #     print('Faiss HNSW recall: {}'.format(float(hnsw_score) / nq))
-
-    """ Falconn++ """
-
-    # Important: Transpose dataset and queries as Falconn++ takes input as D x N, and D x Q
-    # center = np.mean(dataset, axis=0) # no need centering as we will do it internally
-    X_t = np.transpose(X) # centering gives higher accuracy and faster running time
-    Q_t = np.transpose(Q)
-
-    # index param
-    numTables = 50
-    numProj = 256
-    bucketLimit = 50
-    alpha = 0.01
-    iProbes = 3
-    numThreads = 8
-
-    # Indexing
-    t1 = timeit.default_timer()
-
-
-    index = falconnpp.FalconnPP(nx, d)
-
-    index.setIndexParam(numTables, numProj, bucketLimit, alpha, iProbes, numThreads)
-    index.build(X_t)  # add vectors to the index, must transpose to D x N
-    t2 = timeit.default_timer()
-    print('Falconn++ 1D indexing time: {: .4f} in second'.format(t2 - t1))
-
-    # might clear dataset_t for space
-    
-    # Querying 1D
-    probeRepeats = 5
-    for i in range(probeRepeats):
-
-        t1 = timeit.default_timer()
-        qProbes = 1000 * (i + 1)
-        index.set_qProbes(qProbes)
-
-        fal_ind = index.query(Q_t, k)
-        t2 = timeit.default_timer()
-        print('Falconn++ querying time: {: .4f} in seconds'.format(t2 - t1))
-
-        fal_score = 0.0
-        for q in range(nq):
-            temp = len(set(bf_ind[q, :k]).intersection(set(fal_ind[q, :])))
-            fal_score += float(temp) / k
-
-        print('Falconn++ recall: {: .4f}'.format(float(fal_score) / nq))
-
-    # --------------------------------------------------------------------------------
-
-    # Indexing 2D
-    # t1 = timeit.default_timer()
-    # index.clear()
-    # index.setIndexParam(numTables, numProj, bucketLimit, alpha, iProbes, numThreads)
-    # index.build2D(dataset_t)  # add vectors to the index, must transpose to D x N
-    # t2 = timeit.default_timer()
-    # print('Falconn++ indexing 2D time: {}'.format(t2 - t1))
-
-    # Querying 2D
-    # index.set_threads(64)
-    # for i in range(numRepeat):
-    #
-    #     t1 = timeit.default_timer()
-    #     qProbes = 1000 * (i + 1)
-    #     index.set_qProbes(qProbes)
-    #
-    #     fal_answers = index.query2D(queries_t, k)
-    #     t2 = timeit.default_timer()
-    #     print('Falconn++ querying time: {}'.format(t2 - t1))
-    #
-    #     score = 0.0
-    #     for q in range(numQueries):
-    #         temp = len(set(answers_bf[q, :k]).intersection(set(fal_answers[q, :])))
-    #         score += float(temp) / k
-    #
-    #     print('Recall: {}'.format(float(score) / numQueries))
-
-    # --------------------------------------------------------------------------------
-

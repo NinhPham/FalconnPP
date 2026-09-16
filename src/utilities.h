@@ -38,7 +38,7 @@ void outputFile(const Ref<const MatrixXi> & , const string & );
 
 void readIndexParam(int, char**, IndexParam & );
 void readQueryParam(int, char** , QueryParam &);
-void loadtxtData(const string &, int , int, MatrixXf & );
+void loadtxtData(const string &, int , int, RowMatrixXf & );
 
 // Fast Hadamard transform
 /**

@@ -15,7 +15,7 @@ int main(int nargs, char** args) {
     readQueryParam(nargs, args, qParam);
 
     // Read data
-    MatrixXf MATRIX_X, MATRIX_Q;
+    RowMatrixXf MATRIX_X, MATRIX_Q;
 
     // Read dataset
     string dataset = "";

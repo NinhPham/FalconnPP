@@ -7,6 +7,7 @@
 #include <vector>
 #include <queue>
 #include <random>
+#include <stdexcept>
 
 #include <chrono>
 #include <iostream> // cin, cout
@@ -16,6 +17,10 @@
 
 using namespace Eigen;
 using namespace std;
+
+// Public data/query layout: one point per row, one feature per column.
+// This matches C-contiguous NumPy arrays and common ANN libraries.
+using RowMatrixXf = Matrix<float, Dynamic, Dynamic, RowMajor>;
 
 typedef vector<float> FVector;
 typedef vector<int> IVector;

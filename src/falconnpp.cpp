@@ -16,7 +16,10 @@
  * If indexing require updates, then 1D array is very slow.
  */
 
-void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
+void FalconnPP::build2Layers_1D(const Ref<const RowMatrixXf> & matX){
+
+    if (matX.rows() != FalconnPP::n_points || matX.cols() != FalconnPP::n_features)
+        throw invalid_argument("dataset must have shape (n_points, n_features)");
 
     cout << "n_points: " << FalconnPP::n_points << endl;
     cout << "n_features: " << FalconnPP::n_features << endl;
@@ -27,16 +30,16 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
     cout << "bucket_minSize: " << FalconnPP::bucket_minSize << endl;
     cout << "bucket_scale: " << FalconnPP::bucket_scale << endl;
 
-    // We need to center the data set, note that matrix_X is col-wise (D x N)
-    VectorXf vecCenter = matX.rowwise().mean();
-    FalconnPP::matrix_X = matX.array().colwise() - vecCenter.array(); // must add colwise()
+    // Center each feature. Data points are contiguous rows in an N x D matrix.
+    RowVectorXf vecCenter = matX.colwise().mean();
+    FalconnPP::matrix_X = matX.rowwise() - vecCenter;
 
      auto start = chrono::high_resolution_clock::now();
 
-     // Since we have 2 layers, we call HD3Generator2() to generate 2 bitHD, each for each layer
+     // Generate one contiguous random-sign array for each FHT layer.
      // We have L tables, each require n_rotate = 3 random rotations.
      // Each random rotation require one random sign vectors of length fhtDim
-     FalconnPP::bitHD3Generator2(FalconnPP::fhtDim * FalconnPP::n_tables * FalconnPP::n_rotate);
+     FalconnPP::hdSignsGenerator2();
 
      double dScaleData = 0.0;
      int iNumLimitedBucket = 0;
@@ -56,15 +59,31 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
      // pair.second is the bucket size, which is often small, so uint16_t is more than enough
      FalconnPP::vecPair_BucketPos = vector<pair<uint32_t, uint16_t>> (FalconnPP::n_tables * numBucketsPerTable);
 
+     // Only workers that can receive a table allocate build scratch.
+     const int buildThreadCount = max(1, min(FalconnPP::n_threads, FalconnPP::n_tables));
+
      // omp_set_dynamic(0);     // Explicitly disable dynamic teams
      omp_set_num_threads(FalconnPP::n_threads);
-#pragma omp parallel for
+#pragma omp parallel num_threads(buildThreadCount) reduction(+:dScaleData, iNumLimitedBucket)
+     {
+         VectorXf rotatedX1(FalconnPP::fhtDim);
+         VectorXf rotatedX2(FalconnPP::fhtDim);
+         vector<IFPair> vec1(FalconnPP::iProbes);
+         vector<IFPair> vec2(FalconnPP::iProbes);
+
+         // These heaps are fully drained for every point, retaining their storage
+         // without requiring explicit clear/reset operations.
+         priority_queue<IFPair, vector<IFPair>, greater<>> minQueProbes1;
+         priority_queue<IFPair, vector<IFPair>, greater<>> minQueProbes2;
+         priority_queue<IFPair, vector<IFPair>, greater<>> minQue;
+
+#pragma omp for nowait
      for (int l = 0 ; l < FalconnPP::n_tables; ++l)
      {
          //cout << "Hash Table " << l << endl;
          int iBaseTableIdx = l * numBucketsPerTable;
 
-         // vecMaxQue is a hash table, each element is a bucket as a priority queue, some bucket might be empty
+         // vecBucket_MaxQue is a hash table, each element is a bucket as a priority queue, some bucket might be empty
          vector< priority_queue< IFPair, vector<IFPair> > > vecBucket_MaxQue(numBucketsPerTable);
 
          /**
@@ -72,27 +91,30 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
          **/
          for (int n = 0; n < FalconnPP::n_points; ++n)
          {
-             VectorXf rotatedX1 = VectorXf::Zero(FalconnPP::fhtDim);
-             rotatedX1.segment(0, FalconnPP::n_features) = FalconnPP::matrix_X.col(n);
+             rotatedX1.head(FalconnPP::n_features) = FalconnPP::matrix_X.row(n).transpose();
+             if (FalconnPP::fhtDim > FalconnPP::n_features)
+                 rotatedX1.tail(FalconnPP::fhtDim - FalconnPP::n_features).setZero();
 
-             VectorXf rotatedX2 = rotatedX1;
+             rotatedX2 = rotatedX1;
 
-             for (int r = 0; r < FalconnPP::n_rotate; ++r)
+             for (int r = 0; r < n_rotate; ++r)
              {
-                 // Multiply with random sign
-                 for (int d = 0; d < FalconnPP::fhtDim; ++d)
+                 const size_t offset = sign_offset(l, r); // l = table_idx, r: rotation_idx
+                 const float* __restrict signs1 = hdSigns1.data() + offset;
+                 const float* __restrict signs2 = hdSigns2.data() + offset;
+                 float* __restrict x1 = rotatedX1.data();
+                 float* __restrict x2 = rotatedX2.data();
+
+#pragma omp simd
+                 for (int d = 0; d < fhtDim; ++d)
                  {
-                     rotatedX1(d) *= (2 * static_cast<float>(FalconnPP::bitHD1[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
-                     rotatedX2(d) *= (2 * static_cast<float>(FalconnPP::bitHD2[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
+                     x1[d] *= signs1[d];
+                     x2[d] *= signs2[d];
                  }
 
-                 fht_float(rotatedX1.data(), log2_FWHT_D);
-                 fht_float(rotatedX2.data(), log2_FWHT_D);
+                 fht_float(x1, log2_FWHT_D);
+                 fht_float(x2, log2_FWHT_D);
              }
-
-             // This queue is used for finding top-k max hash values and hash index for iProbes on each layer
-             priority_queue< IFPair, vector<IFPair>, greater<> > minQueProbes1; // 1st layer
-             priority_queue< IFPair, vector<IFPair>, greater<> > minQueProbes2; // 2nd layer
 
              /**
              We use a priority queue to keep top-max abs projection for each repeat
@@ -140,10 +162,6 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
     //            assert((int)minQueProbes1.size() == FalconnPP::iProbes);
     //            assert((int)minQueProbes2.size() == FalconnPP::iProbes);
 
-             // Convert to vector
-             vector<IFPair> vec1(FalconnPP::iProbes);
-             vector<IFPair> vec2(FalconnPP::iProbes);
-
              for (int p = FalconnPP::iProbes - 1; p >= 0; --p)
              {
                  vec1[p] = minQueProbes1.top();
@@ -157,8 +175,6 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
              Use minQue to find the top-iProbes over 2 layers via sum of 2 estimators
              Note that vec1 and vec2 are already sorted, and has length of iProbes
              **/
-             priority_queue<IFPair, vector<IFPair>, greater<>> minQue;
-
              for (const auto& ifPair1: vec1)         //p: probing step
              {
                  int iBucketIndex1 = ifPair1.m_iIndex;
@@ -265,6 +281,7 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
 
          dScaleData += (1.0 * iNumPoint / FalconnPP::n_points) / FalconnPP::n_tables;
      }
+     }
 
      //shink_to_fit
      FalconnPP::vecTables_1D.shrink_to_fit();
@@ -310,9 +327,12 @@ void FalconnPP::build2Layers_1D(const Ref<const MatrixXf> & matX){
 * Query on 2 layers LSH
 * Adaptively select better buckets among 2D*2D buckets to have better candidate, given the same candSize
 */
-MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neighbors, bool verbose){
+MatrixXi FalconnPP::query2Layers_1D(const Ref<const RowMatrixXf> & matQ, int n_neighbors, bool verbose){
 
-    int n_queries = matQ.cols();
+    if (matQ.cols() != FalconnPP::n_features)
+        throw invalid_argument("queries must have shape (n_queries, n_features)");
+
+    int n_queries = matQ.rows();
 
     if (verbose)
     {
@@ -339,18 +359,40 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
      int iMaxProbesPerTable = ceil(2.0 * FalconnPP::qProbes / FalconnPP::n_tables);
      int iMaxProbesPerLayer = ceil(sqrt(1.0 * iMaxProbesPerTable)); // one layer
 
+     // Do not create scratch storage for workers that cannot receive a query.
+     const int queryThreadCount = max(1, min(FalconnPP::n_threads, n_queries));
+
     //    cout << "Max probes per table is " << iMaxProbesPerTable << endl;
     //    cout << "Max probes per rotation is " << iMaxProbesPerLayer << endl;
 
      // omp_set_dynamic(0);     // Explicitly disable dynamic teams
      omp_set_num_threads(FalconnPP::n_threads);
-#pragma omp parallel for reduction(+:hashTime, lookupTime, distTime, iTotalProbes, iTotalUniqueCand, iTotalCand)
+#pragma omp parallel num_threads(queryThreadCount) reduction(+:hashTime, lookupTime, distTime, iNumEmptyBucket, iTotalProbes, iTotalUniqueCand, iTotalCand)
+     {
+         // These transforms are private to an OpenMP worker and reused across the
+         // queries assigned to it. Their contents are overwritten for every table.
+         VectorXf rotatedQ1(FalconnPP::fhtDim);
+         VectorXf rotatedQ2(FalconnPP::fhtDim);
+
+         // These fixed-size buffers are completely overwritten before they are
+         // read, so retaining their storage requires no clear or fill operation.
+         vector<IFPair> vec1(iMaxProbesPerLayer);
+         vector<IFPair> vec2(iMaxProbesPerLayer);
+         vector<IFPair> vecBucketProbes(FalconnPP::n_tables * iMaxProbesPerTable);
+
+         // Both heaps are fully drained into vec1/vec2 after every table. Keeping
+         // them at worker scope retains the underlying vector capacities without
+         // requiring an explicit reset between tables or queries.
+         priority_queue<IFPair, vector<IFPair>, greater<>> minQue1;
+         priority_queue<IFPair, vector<IFPair>, greater<>> minQue2;
+
+#pragma omp for nowait
      for (int q = 0; q < n_queries; ++q)
      {
          auto startTime = chrono::high_resolution_clock::now();
 
          // Get hash value of all hash table first
-         VectorXf vecQuery = matQ.col(q);
+         const auto vecQuery = matQ.row(q).transpose();
 
          // For each table, we store the top-m largest projections of |<q, r_i> + <q, s_j>|
          // The index (i, j) --> i * (2D) + j as each layer has 2D buckets. This index will be used as the probing sequence among L tables
@@ -360,22 +402,32 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
          /** Rotating and prepared probes sequence **/
          for (int l = 0; l < FalconnPP::n_tables; ++l)
          {
-             VectorXf rotatedQ1 = VectorXf::Zero(FalconnPP::fhtDim);
-             rotatedQ1.segment(0, FalconnPP::n_features) = vecQuery;
+             // The FHT is in-place, so restore the complete padded query before
+             // every table. Do not setZero() the full vector: the query prefix is
+             // overwritten, and only the padding tail needs explicit zeroing.
+             rotatedQ1.head(FalconnPP::n_features) = vecQuery;
+             if (FalconnPP::fhtDim > FalconnPP::n_features)
+                 rotatedQ1.tail(FalconnPP::fhtDim - FalconnPP::n_features).setZero();
 
-             VectorXf rotatedQ2 = rotatedQ1;
+             rotatedQ2 = rotatedQ1;
 
-             for (int r = 0; r < FalconnPP::n_rotate; ++r)
+             for (int r = 0; r < n_rotate; ++r)
              {
+                 const size_t offset = sign_offset(l, r);
+                 const float* __restrict signs1 = hdSigns1.data() + offset;
+                 const float* __restrict signs2 = hdSigns2.data() + offset;
+                 float* __restrict q1 = rotatedQ1.data();
+                 float* __restrict q2 = rotatedQ2.data();
 
-                 for (int d = 0; d < FalconnPP::fhtDim; ++d)
+#pragma omp simd
+                 for (int d = 0; d < fhtDim; ++d)
                  {
-                     rotatedQ1(d) *= (2 * static_cast<float>(FalconnPP::bitHD1[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
-                     rotatedQ2(d) *= (2 * static_cast<float>(FalconnPP::bitHD2[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
+                     q1[d] *= signs1[d];
+                     q2[d] *= signs2[d];
                  }
 
-                 fht_float(rotatedQ1.data(), log2_FWHT_D);
-                 fht_float(rotatedQ2.data(), log2_FWHT_D);
+                 fht_float(q1, log2_FWHT_D);
+                 fht_float(q2, log2_FWHT_D);
              }
 
 
@@ -383,9 +435,6 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
              // Then insert into priority queue
              // Get top-k max position on each rotations
              // minQueue might be better regarding space usage, hence better for cache
-             priority_queue< IFPair, vector<IFPair>, greater<> > minQue1;
-             priority_queue< IFPair, vector<IFPair>, greater<> > minQue2;
-
              for (int r = 0; r < FalconnPP::n_proj; ++r)
              {
                  // 1st rotation
@@ -440,7 +489,6 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
 
              // Convert to vector, the large projection value is in [0]
              // Hence better for creating a sequence of probing since we do not have to call pop() many times
-             vector<IFPair> vec1(iMaxProbesPerLayer), vec2(iMaxProbesPerLayer);
              for (int p = iMaxProbesPerLayer - 1; p >= 0; --p)
              {
                  // 1st rotation
@@ -502,7 +550,6 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
           * Store the list of prepared probing buckets in an 1D array of size L * maxProbe
           **/
 
-         vector<IFPair> vecBucketProbes(FalconnPP::n_tables * iMaxProbesPerTable);
          for (int l = 0; l < FalconnPP::n_tables; ++l)
          {
              int iBaseTableIdx = l * numBucketsPerTable; // base table idx
@@ -647,7 +694,7 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
          {
              // Get dot product
     //            float fInnerProduct = fstdistfunc_(vecQuery.data(), MATRIX_X.col(iPointIdx).data(), dist_func_param_);
-             float fInnerProduct = vecQuery.dot(FalconnPP::matrix_X.col(iPointIdx));
+             float fInnerProduct = vecQuery.dot(FalconnPP::matrix_X.row(iPointIdx).transpose());
 
              // Add into priority queue
              if (int(minQueTopK.size()) < n_neighbors)
@@ -677,6 +724,7 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
 
          durTime = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime);
          distTime += (float)durTime.count();
+     }
      }
 
      auto durTime = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startQueryTime);
@@ -718,11 +766,14 @@ MatrixXi FalconnPP::query2Layers_1D(const Ref<const MatrixXf> & matQ, int n_neig
  *
  * We build 2 layers LSH, supporting for million-point data sets
  *
- * @ param matX: col-wise dataset of size D x N
+ * @param matX row-major dataset of size N x D
  *
  */
 
-void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
+void FalconnPP::build2Layers(const Ref<const RowMatrixXf> & matX){
+
+    if (matX.rows() != FalconnPP::n_points || matX.cols() != FalconnPP::n_features)
+        throw invalid_argument("dataset must have shape (n_points, n_features)");
 
     cout << "n_points: " << FalconnPP::n_points << endl;
     cout << "n_features: " << FalconnPP::n_features << endl;
@@ -733,17 +784,17 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
     cout << "bucket_minSize: " << FalconnPP::bucket_minSize << endl;
     cout << "bucket_scale: " << FalconnPP::bucket_scale << endl;
 
-    // We need to center the data set, note that matrix_X is col-wise (D x N)
-    VectorXf vecCenter = matX.rowwise().mean();
-    FalconnPP::matrix_X = matX.array().colwise() - vecCenter.array(); // must add colwise()
+    // Center each feature. Data points are contiguous rows in an N x D matrix.
+    RowVectorXf vecCenter = matX.colwise().mean();
+    FalconnPP::matrix_X = matX.rowwise() - vecCenter;
 
 //    cout << "Finish copying dataset into index" << endl;
 
 //    cout << "Matrix input: first data point" << endl;
-//    cout << matX.col(0).transpose() << endl;
+//    cout << matX.row(0) << endl;
 //    cout << "Falconn input: first data point" << endl;
-//    cout << FalconnPP::matrix_X.col(0).transpose() << endl;
-//    cout << "In memory (col-major):" << endl;
+//    cout << FalconnPP::matrix_X.row(0) << endl;
+//    cout << "In memory (row-major):" << endl;
 //    for (int i = 0; i < 200; i++)
 //        cout << *(FalconnPP::matrix_X.data() + i) << "  ";
 //    cout << endl << endl;
@@ -751,10 +802,10 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
     srand(time(NULL)); // should only be called once for random generator
     auto start = chrono::high_resolution_clock::now();
 
-    // Since we have 2 layers, we call HD3Generator2() to generate 2 bitHD, each for each layer
+    // Generate one contiguous random-sign array for each FHT layer.
     // We have L tables, each require n_rotate = 3 random rotations.
     // Each random rotation require one random sign vectors of length fhtDim
-    FalconnPP::bitHD3Generator2(FalconnPP::fhtDim * FalconnPP::n_tables * FalconnPP::n_rotate);
+    FalconnPP::hdSignsGenerator2();
 
 //    cout << "Finish generate HD3" << endl;
 
@@ -771,11 +822,27 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
     // Init the 2D index
     FalconnPP::vecTables_2D = vector<IVector> (FalconnPP::n_tables * numBucketsPerTable);
 
+    // Only workers that can receive a table allocate build scratch.
+    const int buildThreadCount = max(1, min(FalconnPP::n_threads, FalconnPP::n_tables));
+
     // 2 layers, each has CEOs coefficient
     // Closest random vector is [0, D) and far random vectors is [D, 2D)
     // omp_set_dynamic(0);     // Explicitly disable dynamic teams
     omp_set_num_threads(FalconnPP::n_threads);
-#pragma omp parallel for
+#pragma omp parallel num_threads(buildThreadCount) reduction(+:dScaleData, iNumLimitedBucket)
+    {
+    VectorXf rotatedX1(FalconnPP::fhtDim);
+    VectorXf rotatedX2(FalconnPP::fhtDim);
+    vector<IFPair> vec1(FalconnPP::iProbes);
+    vector<IFPair> vec2(FalconnPP::iProbes);
+
+    // These heaps are fully drained for every point, retaining their storage
+    // without requiring explicit clear/reset operations.
+    priority_queue<IFPair, vector<IFPair>, greater<>> minQueLayer1;
+    priority_queue<IFPair, vector<IFPair>, greater<>> minQueLayer2;
+    priority_queue<IFPair, vector<IFPair>, greater<>> minQue;
+
+#pragma omp for nowait
     for (int l = 0 ; l < FalconnPP::n_tables; ++l)
     {
 //        cout << "Hash Table " << l << endl;
@@ -790,27 +857,30 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
         for (int n = 0; n < FalconnPP::n_points; ++n)
         {
 //            cout << n << endl;
-            VectorXf rotatedX1 = VectorXf::Zero(FalconnPP::fhtDim);
-            rotatedX1.segment(0, FalconnPP::n_features) = FalconnPP::matrix_X.col(n);
+            rotatedX1.head(FalconnPP::n_features) = FalconnPP::matrix_X.row(n).transpose();
+            if (FalconnPP::fhtDim > FalconnPP::n_features)
+                rotatedX1.tail(FalconnPP::fhtDim - FalconnPP::n_features).setZero();
 
-            VectorXf rotatedX2 = rotatedX1;
+            rotatedX2 = rotatedX1;
 
-            for (int r = 0; r < FalconnPP::n_rotate; ++r)
+            for (int r = 0; r < n_rotate; ++r)
             {
-                // Multiply with random sign
-                for (int d = 0; d < FalconnPP::fhtDim; ++d)
+                const size_t offset = sign_offset(l, r);
+                const float* __restrict signs1 = hdSigns1.data() + offset;
+                const float* __restrict signs2 = hdSigns2.data() + offset;
+                float* __restrict x1 = rotatedX1.data();
+                float* __restrict x2 = rotatedX2.data();
+
+#pragma omp simd
+                for (int d = 0; d < fhtDim; ++d)
                 {
-                    rotatedX1(d) *= (2 * static_cast<float>(FalconnPP::bitHD1[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
-                    rotatedX2(d) *= (2 * static_cast<float>(FalconnPP::bitHD2[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
+                    x1[d] *= signs1[d];
+                    x2[d] *= signs2[d];
                 }
 
-                fht_float(rotatedX1.data(), log2_FWHT_D);
-                fht_float(rotatedX2.data(), log2_FWHT_D);
+                fht_float(x1, log2_FWHT_D);
+                fht_float(x2, log2_FWHT_D);
             }
-
-            // This queue is used for finding top-k max hash values and hash index for iProbes on each layer
-            priority_queue< IFPair, vector<IFPair>, greater<> > minQueLayer1; // 1st layer
-            priority_queue< IFPair, vector<IFPair>, greater<> > minQueLayer2; // 2nd layer
 
 //            cout << "Finish rotation" << endl;
 
@@ -859,10 +929,6 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
 //            assert((int)minQueLayer1.size() == FalconnPP::iProbes);
 //            assert((int)minQueLayer2.size() == FalconnPP::iProbes);
 
-            // Convert to vector
-            vector<IFPair> vec1(FalconnPP::iProbes);
-            vector<IFPair> vec2(FalconnPP::iProbes);
-
             // As min value is popped first
             for (int p = FalconnPP::iProbes - 1; p >= 0; --p)
             {
@@ -877,8 +943,6 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
             Use minQue to find the top-iProbes over 2 layers via sum of 2 estimators
             Note that vec1 and vec2 are already sorted, and has length of iProbes
             **/
-            priority_queue<IFPair, vector<IFPair>, greater<>> minQue;
-
             for (const auto& ifPair1: vec1)         //p: probing step
             {
                 int iBucketIndex1 = ifPair1.m_iIndex;
@@ -977,6 +1041,7 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
 
         dScaleData += (1.0 * iNumPoint / FalconnPP::n_points) / FalconnPP::n_tables;
     }
+    }
 
     //shink_to_fit
     FalconnPP::vecTables_2D.shrink_to_fit();
@@ -1011,11 +1076,14 @@ void FalconnPP::build2Layers(const Ref<const MatrixXf> & matX){
  *
  * TODO: Using _mm_prefetch and SIMD for faster inner product computation
  *
- * @ matQ: col-wise matrix query of size D x Q
+ * @param matQ row-major query matrix of size Q x D
  */
-MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, int n_neighbors, bool verbose)
+MatrixXi FalconnPP::query2Layers(const Ref<const RowMatrixXf> & matQ, int n_neighbors, bool verbose)
 {
-    int n_queries = matQ.cols();
+    if (matQ.cols() != FalconnPP::n_features)
+        throw invalid_argument("queries must have shape (n_queries, n_features)");
+
+    int n_queries = matQ.rows();
 
     if (verbose)
     {
@@ -1024,8 +1092,8 @@ MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, int n_neighbo
         cout << "number of threads: " << FalconnPP::n_threads << endl;
     }
 
-//    cout << matQ.col(0).transpose() << endl;
-//    cout << "In memory (col-major):" << endl;
+//    cout << matQ.row(0) << endl;
+//    cout << "In memory (row-major):" << endl;
 //    for (int i = 0; i < 200; i++)
 //        cout << *(matQ.data() + i) << "  ";
 //    cout << endl << endl;
@@ -1059,7 +1127,7 @@ MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, int n_neighbo
         auto startTime = chrono::high_resolution_clock::now();
 
         // Get hash value of all hash table first
-        VectorXf vecQuery = matQ.col(q);
+        VectorXf vecQuery = matQ.row(q).transpose();
 
         // For each table, we store the top-m largest projections of |<q, r_i>| + |<q, s_j>|
         // The index (i, j) --> i * (2D) + j as each layer has 2D buckets.
@@ -1076,16 +1144,23 @@ MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, int n_neighbo
             VectorXf rotatedQ2 = rotatedQ1;
 
             // Apply HD3HD2HD1
-            for (int r = 0; r < FalconnPP::n_rotate; ++r)
+            for (int r = 0; r < n_rotate; ++r)
             {
-                for (int d = 0; d < FalconnPP::fhtDim; ++d)
+                const size_t offset = sign_offset(l, r);
+                const float* __restrict signs1 = hdSigns1.data() + offset;
+                const float* __restrict signs2 = hdSigns2.data() + offset;
+                float* __restrict q1 = rotatedQ1.data();
+                float* __restrict q2 = rotatedQ2.data();
+
+#pragma omp simd
+                for (int d = 0; d < fhtDim; ++d)
                 {
-                    rotatedQ1(d) *= (2 * static_cast<float>(FalconnPP::bitHD1[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
-                    rotatedQ2(d) *= (2 * static_cast<float>(FalconnPP::bitHD2[l * FalconnPP::n_rotate * FalconnPP::fhtDim + r * FalconnPP::fhtDim + d]) - 1);
+                    q1[d] *= signs1[d];
+                    q2[d] *= signs2[d];
                 }
 
-                fht_float(rotatedQ1.data(), log2_FWHT_D);
-                fht_float(rotatedQ2.data(), log2_FWHT_D);
+                fht_float(q1, log2_FWHT_D);
+                fht_float(q2, log2_FWHT_D);
             }
 
             // Assign hashIndex and compute distance between hashValue and the maxValue
@@ -1348,10 +1423,10 @@ MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, int n_neighbo
         while (iPointIdx != boost::dynamic_bitset<>::npos)
         {
 //            if (q == 0)
-//                cout << iPointIdx << " and " << vecQuery.dot(FalconnPP::matrix_X.col(iPointIdx)) << endl;
+//                cout << iPointIdx << " and " << vecQuery.dot(FalconnPP::matrix_X.row(iPointIdx).transpose()) << endl;
 
             // TODO: Faster inner product with manual prefetch and SIMD
-            float fInnerProduct = vecQuery.dot(FalconnPP::matrix_X.col(iPointIdx));
+            float fInnerProduct = vecQuery.dot(FalconnPP::matrix_X.row(iPointIdx).transpose());
 
             // Add into priority queue
             if (int(minQueTopK.size()) < n_neighbors)
@@ -1414,7 +1489,3 @@ MatrixXi FalconnPP::query2Layers(const Ref<const MatrixXf> & matQ, int n_neighbo
 
     return matTopK.transpose();
 }
-
-
-
-

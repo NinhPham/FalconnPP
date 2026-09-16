@@ -5,7 +5,7 @@ import timeit
 import sys
 import math
 import os
-import FalconnPP
+import falconnpp
 from pathlib import Path
 import utils
 import faiss
@@ -147,10 +147,7 @@ if __name__ == '__main__':
 
     """ Falconn++ """
 
-    # Important: Transpose dataset and queries as Falconn++ takes input as D x N, and D x Q
     # center = np.mean(dataset, axis=0) # no need centering as we will do it internally
-    X_t = np.transpose(X) # centering gives higher accuracy and faster running time
-    Q_t = np.transpose(Q)
 
     # index param
     numTables = 200
@@ -164,14 +161,14 @@ if __name__ == '__main__':
     t1 = timeit.default_timer()
 
 
-    index = FalconnPP.FalconnPP(nx, d)
+    index = falconnpp.FalconnPP(nx, d)
 
     index.setIndexParam(numTables, numProj, bucketLimit, alpha, iProbes, numThreads)
-    index.build(X_t)  # add vectors to the index, must transpose to D x N
+    index.build(X)
     t2 = timeit.default_timer()
     print('Falconn++ 1D indexing time: {: .4f} in second'.format(t2 - t1))
 
-    # might clear dataset_t for space
+    # might clear X for space
     
     # Querying 1D
     probeRepeats = 5
@@ -181,7 +178,7 @@ if __name__ == '__main__':
         qProbes = 1000 * (i + 1)
         index.set_qProbes(qProbes)
 
-        fal_ind = index.query(Q_t, k)
+        fal_ind = index.query(Q, k)
         t2 = timeit.default_timer()
         print('Falconn++ querying time: {: .4f} in seconds'.format(t2 - t1))
 
@@ -198,7 +195,7 @@ if __name__ == '__main__':
     # t1 = timeit.default_timer()
     # index.clear()
     # index.setIndexParam(numTables, numProj, bucketLimit, alpha, iProbes, numThreads)
-    # index.build2D(dataset_t)  # add vectors to the index, must transpose to D x N
+    # index.build2D(X)
     # t2 = timeit.default_timer()
     # print('Falconn++ indexing 2D time: {}'.format(t2 - t1))
 
@@ -210,7 +207,7 @@ if __name__ == '__main__':
     #     qProbes = 1000 * (i + 1)
     #     index.set_qProbes(qProbes)
     #
-    #     fal_answers = index.query2D(queries_t, k)
+    #     fal_answers = index.query2D(Q, k)
     #     t2 = timeit.default_timer()
     #     print('Falconn++ querying time: {}'.format(t2 - t1))
     #
@@ -222,4 +219,3 @@ if __name__ == '__main__':
     #     print('Recall: {}'.format(float(score) / numQueries))
 
     # --------------------------------------------------------------------------------
-

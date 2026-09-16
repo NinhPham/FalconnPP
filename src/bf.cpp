@@ -10,15 +10,18 @@
 Retrieve n_neighbors MIPS entries using brute force computation
 
 Input:
-- MatrixXd: MATRIX_X (col-major) of size D X N
-- MatrixXd: MATRIX_Q (col-major) of size D x Q
+- MATRIX_X (row-major) of size N x D
+- MATRIX_Q (row-major) of size Q x D
 
 **/
-MatrixXi bf::mips_topK(const Ref<const MatrixXf> & matQ, int n_neighbors)
+MatrixXi bf::mips_topK(const Ref<const RowMatrixXf> & matQ, int n_neighbors)
 {
     auto start = chrono::high_resolution_clock::now();
 
-    int n_queries = matQ.cols();
+    if (matQ.cols() != bf::n_features)
+        throw invalid_argument("queries must have shape (n_queries, n_features)");
+
+    int n_queries = matQ.rows();
     MatrixXi matTopK = MatrixXi::Zero(n_neighbors, n_queries); // K x Q
 
     // omp_set_dynamic(0);     // Explicitly disable dynamic teams
@@ -34,10 +37,10 @@ MatrixXi bf::mips_topK(const Ref<const MatrixXf> & matQ, int n_neighbors)
         priority_queue<IFPair, vector<IFPair>, greater<IFPair>> queTopK;
 
         // Get query
-        VectorXf vecQuery = matQ.col(q); // D x 1
+        VectorXf vecQuery = matQ.row(q).transpose(); // D x 1
 
         // Let Eigen decide SSE or AVX support
-        VectorXf vecRes = vecQuery.transpose() * bf::matrix_X; // (1 x D) * (D x N)
+        VectorXf vecRes = bf::matrix_X * vecQuery; // (N x D) * (D x 1)
 
         // cout << vecRes.maxCoeff() << endl;
 

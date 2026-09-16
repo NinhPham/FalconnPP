@@ -27,7 +27,7 @@ protected:
 
     int seed = -1;
 
-    MatrixXf matrix_X; // d x n
+    RowMatrixXf matrix_X; // n x d; points are contiguous rows
 
     // For 1D index, used in NeurIPS 2022
     vector<pair<uint32_t, uint16_t>> vecPair_BucketPos;
@@ -38,18 +38,26 @@ protected:
 
     int fhtDim;
 
-    // 2 Layers
-    boost::dynamic_bitset<> bitHD1;
-    boost::dynamic_bitset<> bitHD2;
+    // Random signs for the two FHT layers. Layout:
+    // ((table * n_rotate + rotation) * fhtDim + dimension).
+    using AlignedFloatVector =
+        std::vector<float, Eigen::aligned_allocator<float>>;
+    AlignedFloatVector hdSigns1;
+    AlignedFloatVector hdSigns2;
+
+    inline size_t sign_offset(int table, int rotation) const noexcept
+    {
+        return (static_cast<size_t>(table) * n_rotate + rotation)
+               * static_cast<size_t>(fhtDim);
+    }
 
 protected:
 
     /**
-     * Generate 2 vectors of random sign, each for one layer.
-     * We use boost::bitset for saving space
-     * @param p_iNumBit = L * 3 * Length (3 rotation, 2 layers, each with L tables)
+     * Generate two contiguous vectors of random signs, one for each layer.
+     * The RNG draw order is layer 1 followed by layer 2 at every position.
      */
-    void bitHD3Generator2(int p_iNumBit)
+    void hdSignsGenerator2()
     {
         unsigned seed = chrono::system_clock::now().time_since_epoch().count();
         if (FalconnPP::seed > -1) // then use the assigned seed
@@ -58,20 +66,18 @@ protected:
         default_random_engine generator(seed);
         uniform_int_distribution<uint32_t> unifDist(0, 1);
 
-        bitHD1 = boost::dynamic_bitset<> (p_iNumBit);
-        bitHD2 = boost::dynamic_bitset<> (p_iNumBit);
+        const size_t num_signs =
+            static_cast<size_t>(n_tables) *
+            static_cast<size_t>(n_rotate) *
+            static_cast<size_t>(fhtDim);
 
-        for (int d = 0; d < p_iNumBit; ++d)
+        hdSigns1.resize(num_signs);
+        hdSigns2.resize(num_signs);
+        for (size_t i = 0; i < num_signs; ++i)
         {
-            bitHD1[d] = unifDist(generator) & 1;
-            bitHD2[d] = unifDist(generator) & 1;
+            hdSigns1[i] = (unifDist(generator) & 1) ? 1.0f : -1.0f;
+            hdSigns2[i] = (unifDist(generator) & 1) ? 1.0f : -1.0f;
         }
-
-//        for (int i = 0; i < 20; i++)
-//        {
-//            cout << bitHD1[i] << endl;
-//            cout << bitHD2[i] << endl;
-//        }
     }
 
 public:
@@ -106,8 +112,8 @@ public:
         vecPair_BucketPos.clear();
         vecTables_1D.clear();
 
-        bitHD1.clear();
-        bitHD2.clear();
+        hdSigns1.clear();
+        hdSigns2.clear();
     }
 
     void set_qProbes(int p){
@@ -122,11 +128,11 @@ public:
             n_threads = t;
     }
 
-    void build2Layers_1D(const Ref<const MatrixXf> &); // Used in NeurIPS 2022 for static data
-    MatrixXi query2Layers_1D(const Ref<const MatrixXf> &, int , bool=false); // Used in NeurIPS 2022 for static data
+    void build2Layers_1D(const Ref<const RowMatrixXf> &); // Used in NeurIPS 2022 for static data
+    MatrixXi query2Layers_1D(const Ref<const RowMatrixXf> &, int , bool=false); // Used in NeurIPS 2022 for static data
 
-    void build2Layers(const Ref<const MatrixXf> &);
-    MatrixXi query2Layers(const Ref<const MatrixXf> &, int , bool=false);
+    void build2Layers(const Ref<const RowMatrixXf> &);
+    MatrixXi query2Layers(const Ref<const RowMatrixXf> &, int , bool=false);
 
     ~FalconnPP() { clear(); }
 };

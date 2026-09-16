@@ -39,7 +39,7 @@ void outputFile(const Ref<const MatrixXi> & p_matKNN, const string& p_sOutputFil
  * @param numDim
  * @param MATRIX_X
  */
-void loadtxtData(const string & dataset, int numPoints, int numDim, MatrixXf & MATRIX_X)
+void loadtxtData(const string & dataset, int numPoints, int numDim, RowMatrixXf & MATRIX_X)
 {
     FILE *f = fopen(dataset.c_str(), "r");
     if (!f) {
@@ -48,12 +48,12 @@ void loadtxtData(const string & dataset, int numPoints, int numDim, MatrixXf & M
     }
 
     // Important: If use a temporary vector to store data, then it doubles the memory
-    MATRIX_X = MatrixXf::Zero(numDim, numPoints);
+    MATRIX_X = RowMatrixXf::Zero(numPoints, numDim);
 
     // Each line is a vector of D dimensions
     for (int n = 0; n < numPoints; ++n) {
         for (int d = 0; d < numDim; ++d) {
-            fscanf(f, "%f", &MATRIX_X(d, n));
+            fscanf(f, "%f", &MATRIX_X(n, d));
         }
     }
 
