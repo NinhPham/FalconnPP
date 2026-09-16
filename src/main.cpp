@@ -1,14 +1,10 @@
 #include <iostream>
 #include <ctime> // for time(0) to generate different random number
 
-#include "Header.h"
-#include "Utilities.h"
-#include "FalconnPP.h"
-#include "BF.h"
-
-// --numData 1183514 --n_features 200 --n_tables 10 --n_proj 256 --bucket_minSize 20, --bucket_scale 0.01
-// --X "/home/npha145/Dataset/kNN/CosineKNN/Glove_X_1183514_200.txt" --n_threads 4
-// --Q "/home/npha145/Dataset/kNN/CosineKNN/Glove_Q_1000_200.txt" --n_queries 1000  --qProbes 10 --n_neighbors 20 --n_threads 4
+#include "header.h"
+#include "utilities.h"
+#include "falconnpp.h"
+#include "bf.h"
 
 int main(int nargs, char** args) {
 

@@ -3,6 +3,12 @@
 
 #include "fast_copy.h"
 
+// #ifdef __AVX__
+// #pragma message("FalconnPP FHT: compiling AVX implementation")
+// #else
+// #pragma message("FalconnPP FHT: compiling SSE implementation")
+// #endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

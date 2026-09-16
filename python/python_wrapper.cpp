@@ -1,4 +1,4 @@
-#include <FalconnPP.h>
+#include <falconnpp.h>
 
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
@@ -11,7 +11,7 @@ namespace python {
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(FalconnPP, m) { // Must be the same name with class FalconnPP
+PYBIND11_MODULE(falconnpp, m) { // Must be the same name with class FalconnPP
     py::class_<FalconnPP>(m, "FalconnPP")
         .def(py::init<const int&, const int&>(),  py::arg("n_points"), py::arg("n_features"))
 //        .def("Index2Layers", &FalconnPP::Index2Layers)
@@ -29,5 +29,5 @@ PYBIND11_MODULE(FalconnPP, m) { // Must be the same name with class FalconnPP
         .def("query", &FalconnPP::query2Layers_1D,
              py::arg("queries"), py::arg("n_neighbors"), py::arg("verbose") = false);
 
-} // namespace FalconPP
+} // namespace falconnpp
 } // namespace python

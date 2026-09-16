@@ -29,10 +29,13 @@ if sys.platform == 'darwin':
 
 ext_modules = [
     Pybind11Extension(
-        "FalconnPP",
-        ["python/python_wrapper.cpp", "src/main.cpp",
-         "src/FalconnPP.cpp", "src/Utilities.cpp",
-         "src/fht.c", "src/fast_copy.c", "src/BF.cpp"],
+        "falconnpp",
+        ["python/python_wrapper.cpp",
+         "src/falconnpp.cpp",
+         "src/bf.cpp",
+         "src/utilities.cpp",
+         "src/fht.c",
+         "src/fast_copy.c"],
         # Example: passing in the version to the compiled code
         define_macros=[("VERSION_INFO", __version__)],
             extra_compile_args=extra_args,
@@ -43,7 +46,7 @@ ext_modules = [
 
 
 setup(
-    name='FalconnPP',
+    name='falconnpp',
     version='0.0.1',
     author='Ninh Pham',
     author_email='ninh.pham@auckland.ac.nz',

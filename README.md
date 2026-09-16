@@ -31,8 +31,6 @@ or
 ```bash
 mkdir build && cd build && cmake .. && make
 ```
-
-
 ## Test call
 
 Data and query must be d x n matrices.
