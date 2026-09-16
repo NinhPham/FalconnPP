@@ -23,6 +23,8 @@ We have not engineered Falconn++ much with other techniques, e.g. prefetching.
 Just clone this repository and run
 
 ```bash
+python3 -m pip install .
+or
 python3 setup.py install
 ```
 
@@ -33,23 +35,22 @@ mkdir build && cd build && cmake .. && make
 ```
 ## Test call
 
-Data and query must be d x n matrices.
+Data and query must be n x d matrices, compatible with numpy 's default storage.
 
 ```
-import FalconnPP
-index = FalconnPP.FalconnPP(n_points, n_features)
+import falconnpp
+index = falconnpp.FalconnPP(n_points, n_features)
 index.setIndexParam(n_tables, n_proj, bucketLimit, alpha, iProbes, n_threads)
-index.build(dataset_t)  # add vectors to the index, must transpose to D x N
+index.build(dataset)  # add vectors to the index of size N x D
 
 index.set_qProbes(qProbes) # set multi-probes for querying
-fal_answers = index.query(queries_t, k)
+fal_answers = index.query(queries, k)
 ```
 
 See test/falconnpp.py for Python example and src/main.cpp for C++ example.
 
 ## Authors
 
-It is mainly developed by Ninh Pham. It grew out of a master research project of Tao Liu.
 If you want to cite FALCONN++ in a publication, please use
 
 > [Falconn++](https://proceedings.neurips.cc/paper_files/paper/2022/hash/ca2963d1cfb25e93362e86fb427a9524-Abstract-Conference.html)
